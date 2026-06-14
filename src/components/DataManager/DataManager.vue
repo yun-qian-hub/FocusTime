@@ -139,22 +139,31 @@ function importData() {
         return
       }
 
-      if (data.todos) todoStore.todos = data.todos
-      if (data.calendarEvents) calendarStore.events = data.calendarEvents
-      if (data.notes) notesStore.notes = data.notes
-      if (data.alarms) alarmStore.alarms = data.alarms
+      localStorage.removeItem('task_manager_todos')
+      localStorage.removeItem('task_manager_events')
+      localStorage.removeItem('task_manager_notes')
+      localStorage.removeItem('task_manager_alarms')
+      localStorage.removeItem('task_manager_important_events')
+
+      if (data.todos) {
+        localStorage.setItem('task_manager_todos', JSON.stringify(data.todos))
+      }
+      if (data.calendarEvents) {
+        localStorage.setItem('task_manager_events', JSON.stringify(data.calendarEvents))
+      }
+      if (data.notes) {
+        localStorage.setItem('task_manager_notes', JSON.stringify(data.notes))
+      }
+      if (data.alarms) {
+        localStorage.setItem('task_manager_alarms', JSON.stringify(data.alarms))
+      }
       if (data.importantEvents) {
-        importantStore.events = data.importantEvents.map((event: any) => ({
+        const eventsWithColor = data.importantEvents.map((event: any) => ({
           ...event,
           color: event.color || '#f3e8ff'
         }))
+        localStorage.setItem('task_manager_important_events', JSON.stringify(eventsWithColor))
       }
-
-      todoStore.$storage?.setItem('task_manager_todos', JSON.stringify(todoStore.todos))
-      calendarStore.$storage?.setItem('task_manager_calendar_events', JSON.stringify(calendarStore.events))
-      notesStore.$storage?.setItem('task_manager_notes', JSON.stringify(notesStore.notes))
-      alarmStore.$storage?.setItem('task_manager_alarms', JSON.stringify(alarmStore.alarms))
-      importantStore.$storage?.setItem('task_manager_important_events', JSON.stringify(importantStore.events))
 
       importMessage.value = '数据导入成功！页面将刷新'
       importSuccess.value = true

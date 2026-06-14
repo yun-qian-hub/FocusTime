@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Plus, Search, X, Trash2, Calendar, AlertCircle } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Plus, Search, X, Trash2, Calendar, AlertCircle, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { useTodoStore } from '@/stores/todo'
 import type { Todo } from '@/types'
 
@@ -12,8 +12,14 @@ const newTodo = ref({
   title: '',
   description: '',
   priority: 'medium' as 'high' | 'medium' | 'low',
-  dueDate: ''
+  dueDate: '',
+  displayMode: 'none' as 'none' | 'progress' | 'checkbox',
+  subtaskCount: 0
 })
+const newSubtask = ref('')
+const expandedTodos = ref<Set<number>>(new Set())
+const editingSubtask = ref<{ todoId: number; subtaskId: number; value: string } | null>(null)
+const isDragging = ref(false)
 
 const filters = [
   { id: 'all', label: '全部', icon: '📋' },
@@ -46,6 +52,29 @@ const priorityTextColors = {
   low: 'text-emerald-600'
 }
 
+const priorityProgressColors = {
+  high: 'bg-red-400',
+  medium: 'bg-amber-400',
+  low: 'bg-emerald-400'
+}
+
+function getProgress(todo: Todo): { completed: number; total: number; percent: number } {
+  if (!todo.subtasks || todo.subtasks.length === 0) {
+    return { completed: todo.completed ? 1 : 0, total: 1, percent: todo.completed ? 100 : 0 }
+  }
+  const completed = todo.subtasks.filter(s => s.completed).length
+  const total = todo.subtasks.length
+  return { completed, total, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
+}
+
+function toggleExpand(todoId: number) {
+  if (expandedTodos.value.has(todoId)) {
+    expandedTodos.value.delete(todoId)
+  } else {
+    expandedTodos.value.add(todoId)
+  }
+}
+
 function openAddModal(todo?: Todo) {
   if (todo) {
     editingTodo.value = todo
@@ -53,7 +82,9 @@ function openAddModal(todo?: Todo) {
       title: todo.title,
       description: todo.description || '',
       priority: todo.priority,
-      dueDate: todo.dueDate || ''
+      dueDate: todo.dueDate || '',
+      displayMode: todo.displayMode || 'none',
+      subtaskCount: todo.subtasks ? todo.subtasks.length : 0
     }
   } else {
     editingTodo.value = null
@@ -61,7 +92,9 @@ function openAddModal(todo?: Todo) {
       title: '',
       description: '',
       priority: 'medium',
-      dueDate: ''
+      dueDate: '',
+      displayMode: 'none',
+      subtaskCount: 0
     }
   }
   showAddModal.value = true
@@ -71,19 +104,42 @@ function saveTodo() {
   if (!newTodo.value.title.trim()) return
   
   if (editingTodo.value) {
-    store.updateTodo(editingTodo.value.id, {
+    const updates: any = {
       title: newTodo.value.title,
       description: newTodo.value.description,
       priority: newTodo.value.priority,
-      dueDate: newTodo.value.dueDate
-    })
+      dueDate: newTodo.value.dueDate,
+      displayMode: newTodo.value.displayMode
+    }
+    if (newTodo.value.displayMode !== 'none') {
+      if (!editingTodo.value.subtasks || editingTodo.value.subtasks.length !== newTodo.value.subtaskCount) {
+        updates.subtasks = Array.from({ length: newTodo.value.subtaskCount }, (_, i) => ({
+          id: Date.now() + i,
+          title: `子任务 ${i + 1}`,
+          completed: false
+        }))
+      }
+    } else if (editingTodo.value.subtasks) {
+      updates.subtasks = undefined
+    }
+    store.updateTodo(editingTodo.value.id, updates)
   } else {
+    const subtasks = newTodo.value.displayMode !== 'none' && newTodo.value.subtaskCount > 0
+      ? Array.from({ length: newTodo.value.subtaskCount }, (_, i) => ({
+          id: Date.now() + i,
+          title: `子任务 ${i + 1}`,
+          completed: false
+        }))
+      : undefined
+    
     store.addTodo({
       title: newTodo.value.title,
       description: newTodo.value.description,
       priority: newTodo.value.priority,
       completed: false,
-      dueDate: newTodo.value.dueDate
+      dueDate: newTodo.value.dueDate,
+      displayMode: newTodo.value.displayMode,
+      subtasks
     })
   }
   
@@ -101,8 +157,55 @@ function closeModal() {
     title: '',
     description: '',
     priority: 'medium',
-    dueDate: ''
+    dueDate: '',
+    displayMode: 'none',
+    subtaskCount: 0
   }
+}
+
+function startEditSubtask(todoId: number, subtaskId: number, title: string) {
+  editingSubtask.value = { todoId, subtaskId, value: title }
+}
+
+function saveEditSubtask() {
+  if (editingSubtask.value && editingSubtask.value.value.trim()) {
+    store.updateSubtask(editingSubtask.value.todoId, editingSubtask.value.subtaskId, {
+      title: editingSubtask.value.value.trim()
+    })
+  }
+  editingSubtask.value = null
+}
+
+function cancelEditSubtask() {
+  editingSubtask.value = null
+}
+
+function handleProgressDragStart(todo: Todo) {
+  isDragging.value = true
+}
+
+function handleProgressDragEnd(todo: Todo) {
+  isDragging.value = false
+}
+
+function handleProgressClick(event: MouseEvent, todo: Todo) {
+  if (!todo.subtasks || todo.subtasks.length === 0) return
+  
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const x = event.clientX - rect.left
+  const percent = Math.round((x / rect.width) * 100)
+  const targetCompleted = Math.round((percent / 100) * todo.subtasks.length)
+  
+  todo.subtasks.forEach((subtask, index) => {
+    subtask.completed = index < targetCompleted
+  })
+  
+  const allDone = todo.subtasks.every(s => s.completed)
+  store.updateTodo(todo.id, { 
+    subtasks: [...todo.subtasks],
+    completed: allDone 
+  })
 }
 
 function formatDate(dateStr?: string): string {
@@ -116,13 +219,20 @@ function isOverdue(dueDate?: string): boolean {
   const today = new Date().toISOString().split('T')[0]
   return dueDate < today
 }
+
+function addSubtask(todoId: number) {
+  if (newSubtask.value.trim()) {
+    store.addSubtask(todoId, newSubtask.value.trim())
+    newSubtask.value = ''
+  }
+}
 </script>
 
 <template>
   <div class="flex-1 flex flex-col gap-6 p-6">
     <header>
       <h1 class="text-2xl font-bold text-gray-800">待办事项</h1>
-      <p class="text-gray-500 mt-1">管理你的日常任务</p>
+      <p class="text-gray-500 mt-1">管理你的日常任务，追踪完成进度</p>
     </header>
     
     <div class="grid grid-cols-4 gap-4">
@@ -193,69 +303,158 @@ function isOverdue(dueDate?: string): boolean {
         <div
           v-for="todo in store.displayedTodos"
           :key="todo.id"
-          class="p-4 rounded-xl border transition-all cursor-pointer group"
+          class="rounded-xl border transition-all group"
           :class="[
             todo.completed 
-              ? 'bg-gray-50 border-gray-200 opacity-60' 
+              ? 'bg-gray-50 border-gray-200 opacity-70' 
               : priorityBgColors[todo.priority]
           ]"
-          @click="store.toggleTodo(todo.id)"
         >
-          <div class="flex items-start gap-3">
-            <div
-              class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
-              :class="[
-                todo.completed 
-                  ? 'bg-emerald-500 border-emerald-500' 
-                  : priorityColors[todo.priority] + ' border-transparent'
-              ]"
-            >
-              <svg v-if="todo.completed" :width="14" :height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            
-            <div class="flex-1 min-w-0">
-              <h3 
-                class="font-medium text-gray-800"
-                :class="[todo.completed ? 'line-through' : '']"
+          <div
+            class="p-4"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer"
+                :class="[
+                  todo.completed 
+                    ? 'bg-emerald-500 border-emerald-500' 
+                    : priorityColors[todo.priority] + ' border-transparent'
+                ]"
+                @click="store.toggleTodo(todo.id)"
               >
-                {{ todo.title }}
-              </h3>
-              <p v-if="todo.description" class="text-sm text-gray-500 mt-1">{{ todo.description }}</p>
-              
-              <div class="flex items-center gap-3 mt-2">
-                <span 
-                  class="px-2 py-0.5 rounded-full text-xs font-medium"
-                  :class="[todo.completed ? 'bg-gray-200 text-gray-600' : priorityBgColors[todo.priority] + ' ' + priorityTextColors[todo.priority]]"
-                >
-                  {{ priorityLabels[todo.priority] }}优先级
-                </span>
-                
-                <span v-if="todo.dueDate" class="flex items-center gap-1 text-sm text-gray-500">
-                  <Calendar :size="14" />
-                  <span :class="[isOverdue(todo.dueDate) && !todo.completed ? 'text-red-500' : '']">
-                    {{ formatDate(todo.dueDate) }}
-                  </span>
-                </span>
-              </div>
-            </div>
-            
-            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                @click.stop="openAddModal(todo)"
-                class="w-8 h-8 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center"
-              >
-                <svg :width="16" :height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <svg v-if="todo.completed" :width="14" :height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-              </button>
-              <button
-                @click.stop="deleteTodo(todo.id)"
-                class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center"
-              >
-                <Trash2 :size="16" class="text-red-500" />
-              </button>
+              </div>
+              
+              <div class="flex-1 min-w-0">
+                <h3 
+                  class="font-medium text-gray-800"
+                  :class="[todo.completed ? 'line-through' : '']"
+                >
+                  {{ todo.title }}
+                </h3>
+                <p v-if="todo.description" class="text-sm text-gray-500 mt-1">{{ todo.description }}</p>
+                
+                <div v-if="todo.displayMode === 'progress'" class="mt-3">
+                  <div class="flex items-center justify-between text-sm mb-1.5">
+                    <span class="text-gray-500">进度</span>
+                    <span class="font-medium text-primary">
+                      {{ getProgress(todo).completed }}/{{ getProgress(todo).total }}
+                    </span>
+                  </div>
+                  <div 
+                    class="h-3 bg-gray-200 rounded-full cursor-pointer relative overflow-hidden"
+                    @click="handleProgressClick($event, todo)"
+                  >
+                    <div 
+                      class="h-full rounded-full transition-all duration-200 bg-gradient-to-r from-blue-400 to-blue-500"
+                      :style="{ width: getProgress(todo).percent + '%' }"
+                    ></div>
+                  </div>
+                </div>
+                
+                <div v-if="todo.displayMode === 'checkbox'" class="mt-3 space-y-2">
+                  <div v-if="!todo.subtasks || todo.subtasks.length === 0" class="text-sm text-gray-400 p-2 bg-white/30 rounded-lg">
+                    暂无子任务，请点击下方按钮添加
+                  </div>
+                  <div
+                    v-for="subtask in todo.subtasks"
+                    :key="subtask.id"
+                    class="flex items-center gap-2 p-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors"
+                  >
+                    <div
+                      class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer"
+                      :class="[
+                        subtask.completed 
+                          ? 'bg-emerald-500 border-emerald-500' 
+                          : 'border-gray-300 hover:border-emerald-400'
+                      ]"
+                      @click="store.toggleSubtask(todo.id, subtask.id)"
+                    >
+                      <svg v-if="subtask.completed" :width="12" :height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <template v-if="editingSubtask?.todoId === todo.id && editingSubtask?.subtaskId === subtask.id">
+                      <input
+                        v-model="editingSubtask.value"
+                        type="text"
+                        class="flex-1 px-2 py-1 text-sm border border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+                        @keyup.enter="saveEditSubtask"
+                        @keyup.esc="cancelEditSubtask"
+                        @blur="saveEditSubtask"
+                        ref="(el: any) => el && el.focus()"
+                      />
+                    </template>
+                    <span 
+                      v-else
+                      class="text-sm flex-1 cursor-pointer hover:bg-white/50 rounded px-1 py-0.5"
+                      :class="[subtask.completed ? 'text-gray-400 line-through' : 'text-gray-700']"
+                      @click="startEditSubtask(todo.id, subtask.id, subtask.title)"
+                    >
+                      {{ subtask.title }}
+                    </span>
+                    <button
+                      @click.stop="store.removeSubtask(todo.id, subtask.id)"
+                      class="w-6 h-6 rounded-lg hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X :size="12" class="text-red-500" />
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-2 mt-2">
+                    <input
+                      v-model="newSubtask"
+                      type="text"
+                      class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white/70"
+                      placeholder="添加子任务..."
+                      @keyup.enter="addSubtask(todo.id)"
+                    />
+                    <button
+                      @click="addSubtask(todo.id)"
+                      class="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center"
+                    >
+                      <Plus :size="14" class="text-primary" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-3 mt-2">
+                  <span 
+                    class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    :class="[todo.completed ? 'bg-gray-200 text-gray-600' : priorityBgColors[todo.priority] + ' ' + priorityTextColors[todo.priority]]"
+                  >
+                    {{ priorityLabels[todo.priority] }}优先级
+                  </span>
+                  
+                  <span v-if="todo.dueDate" class="flex items-center gap-1 text-sm text-gray-500">
+                    <Calendar :size="14" />
+                    <span :class="[isOverdue(todo.dueDate) && !todo.completed ? 'text-red-500' : '']">
+                      {{ formatDate(todo.dueDate) }}
+                    </span>
+                  </span>
+                  
+
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  @click.stop="openAddModal(todo)"
+                  class="w-8 h-8 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center"
+                >
+                  <svg :width="16" :height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  @click.stop="deleteTodo(todo.id)"
+                  class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                >
+                  <Trash2 :size="16" class="text-red-500" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -314,6 +513,27 @@ function isOverdue(dueDate?: string): boolean {
                   class="input-field"
                 />
               </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">进度显示</label>
+              <select v-model="newTodo.displayMode" class="input-field">
+                <option value="none">无</option>
+                <option value="progress">进度条</option>
+                <option value="checkbox">多个事项复选框</option>
+              </select>
+            </div>
+            
+            <div v-if="newTodo.displayMode !== 'none'">
+              <label class="block text-sm font-medium text-gray-700 mb-2">子任务数量</label>
+              <input
+                v-model.number="newTodo.subtaskCount"
+                type="number"
+                min="0"
+                max="50"
+                class="input-field"
+                placeholder="输入子任务数量"
+              />
             </div>
           </div>
           

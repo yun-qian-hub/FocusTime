@@ -21,25 +21,54 @@
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 1. 安装 Node.js
+
+首先确保你的电脑上安装了 Node.js（版本 18 或更高）：
+
+- 下载地址：https://nodejs.org/
+- 安装完成后打开命令行，输入 `node -v` 确认安装成功
+
+### 2. 克隆项目
+
+```bash
+git clone https://github.com/yun-qian-hub/FocusTime.git
+cd FocusTime
+```
+
+### 3. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 开发模式
+### 4. 启动开发服务器
 
 ```bash
 npm run dev
 ```
 
-### 构建生产版本
+启动后会显示类似这样的信息：
+
+```
+VITE v5.x.x  ready in xxx ms
+
+➜  Local:   http://localhost:5173/
+➜  Network: use --host to expose
+```
+
+在浏览器中打开 `http://localhost:5173/` 即可使用。
+
+### 5. 构建生产版本
+
+如果你需要部署到服务器：
 
 ```bash
 npm run build
 ```
 
-### 预览生产版本
+构建完成后，`dist` 目录就是可以部署的静态文件。
+
+### 6. 预览生产版本
 
 ```bash
 npm run preview

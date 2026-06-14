@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Todo } from '@/types'
+import type { Todo, TodoSubtask } from '@/types'
 import { getTodos, saveTodos } from '@/utils/storage'
 
 export const useTodoStore = defineStore('todo', () => {
@@ -73,10 +73,14 @@ export const useTodoStore = defineStore('todo', () => {
     }
   }
   
-  function updateTodo(id: number, updates: Partial<Pick<Todo, 'title' | 'description' | 'priority' | 'dueDate' | 'parentId' | 'eventType' | 'completed'>>) {
+  function updateTodo(id: number, updates: Partial<Pick<Todo, 'title' | 'description' | 'priority' | 'dueDate' | 'parentId' | 'eventType' | 'completed' | 'subtasks' | 'displayMode'>> & { subtasks?: TodoSubtask[] | undefined }) {
     const todo = todos.value.find(t => t.id === id)
     if (todo) {
-      Object.assign(todo, updates)
+      if ('subtasks' in updates && updates.subtasks === undefined) {
+        delete (todo as any).subtasks
+      } else {
+        Object.assign(todo, updates)
+      }
       todo.updatedAt = new Date().toISOString()
       saveTodos(todos.value)
     }
@@ -85,6 +89,75 @@ export const useTodoStore = defineStore('todo', () => {
   function deleteTodo(id: number) {
     todos.value = todos.value.filter(t => t.id !== id)
     saveTodos(todos.value)
+  }
+  
+  function toggleSubtask(todoId: number, subtaskId: number) {
+    const todo = todos.value.find(t => t.id === todoId)
+    if (todo && todo.subtasks) {
+      const subtask = todo.subtasks.find(s => s.id === subtaskId)
+      if (subtask) {
+        subtask.completed = !subtask.completed
+        todo.updatedAt = new Date().toISOString()
+        
+        const allDone = todo.subtasks.every(s => s.completed)
+        const anyDone = todo.subtasks.some(s => s.completed)
+        if (allDone) {
+          todo.completed = true
+        } else if (!anyDone) {
+          todo.completed = false
+        }
+        saveTodos(todos.value)
+      }
+    }
+  }
+  
+  function addSubtask(todoId: number, title: string) {
+    const todo = todos.value.find(t => t.id === todoId)
+    if (todo) {
+      if (!todo.subtasks) {
+        todo.subtasks = []
+      }
+      const newSubtask: TodoSubtask = {
+        id: Date.now(),
+        title,
+        completed: false
+      }
+      todo.subtasks.push(newSubtask)
+      todo.updatedAt = new Date().toISOString()
+      saveTodos(todos.value)
+    }
+  }
+  
+  function removeSubtask(todoId: number, subtaskId: number) {
+    const todo = todos.value.find(t => t.id === todoId)
+    if (todo && todo.subtasks) {
+      todo.subtasks = todo.subtasks.filter(s => s.id !== subtaskId)
+      todo.updatedAt = new Date().toISOString()
+      
+      const allDone = todo.subtasks.length > 0 && todo.subtasks.every(s => s.completed)
+      todo.completed = allDone
+      saveTodos(todos.value)
+    }
+  }
+  
+  function updateSubtask(todoId: number, subtaskId: number, updates: Partial<Pick<TodoSubtask, 'title' | 'completed'>>) {
+    const todo = todos.value.find(t => t.id === todoId)
+    if (todo && todo.subtasks) {
+      const subtask = todo.subtasks.find(s => s.id === subtaskId)
+      if (subtask) {
+        Object.assign(subtask, updates)
+        todo.updatedAt = new Date().toISOString()
+        
+        const allDone = todo.subtasks.every(s => s.completed)
+        const anyDone = todo.subtasks.some(s => s.completed)
+        if (allDone) {
+          todo.completed = true
+        } else if (!anyDone) {
+          todo.completed = false
+        }
+        saveTodos(todos.value)
+      }
+    }
   }
   
   function setFilter(filter: 'all' | 'today' | 'completed' | 'pending') {
@@ -106,6 +179,10 @@ export const useTodoStore = defineStore('todo', () => {
     updateTodo,
     deleteTodo,
     setFilter,
-    setSearch
+    setSearch,
+    toggleSubtask,
+    addSubtask,
+    removeSubtask,
+    updateSubtask
   }
 })

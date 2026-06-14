@@ -1,3 +1,9 @@
+export interface TodoSubtask {
+  id: number
+  title: string
+  completed: boolean
+}
+
 export interface Todo {
   id: number
   title: string
@@ -9,6 +15,8 @@ export interface Todo {
   updatedAt: string
   parentId?: number
   eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
+  subtasks?: TodoSubtask[]
+  displayMode?: 'progress' | 'checkbox' | 'none'
 }
 
 export interface CalendarEvent {

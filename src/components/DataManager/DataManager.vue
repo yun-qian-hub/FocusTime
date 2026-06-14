@@ -143,7 +143,12 @@ function importData() {
       if (data.calendarEvents) calendarStore.events = data.calendarEvents
       if (data.notes) notesStore.notes = data.notes
       if (data.alarms) alarmStore.alarms = data.alarms
-      if (data.importantEvents) importantStore.events = data.importantEvents
+      if (data.importantEvents) {
+        importantStore.events = data.importantEvents.map((event: any) => ({
+          ...event,
+          color: event.color || '#f3e8ff'
+        }))
+      }
 
       todoStore.$storage?.setItem('task_manager_todos', JSON.stringify(todoStore.todos))
       calendarStore.$storage?.setItem('task_manager_calendar_events', JSON.stringify(calendarStore.events))

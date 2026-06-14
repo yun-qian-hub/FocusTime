@@ -55,21 +55,18 @@ const cellColorPresets = [
   { label: '橙色', color: '#fed7aa' }
 ]
 
-const hasEventColor = ref('#f3e8ff')
 const selectedDefaultColor = ref('#f3e8ff')
 
 function loadColors() {
   const saved = localStorage.getItem('calendar_colors')
   if (saved) {
     const data = JSON.parse(saved)
-    hasEventColor.value = data.hasEventColor || '#6366f1'
     selectedDefaultColor.value = data.selectedDefaultColor || '#6366f1'
   }
 }
 
 function saveColors() {
   localStorage.setItem('calendar_colors', JSON.stringify({
-    hasEventColor: hasEventColor.value,
     selectedDefaultColor: selectedDefaultColor.value
   }))
 }
@@ -328,21 +325,6 @@ onUnmounted(() => {
           </button>
         </div>
         
-        <div class="mb-4">
-          <p class="text-sm font-medium text-gray-700 mb-2">有事件的日期颜色</p>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="preset in cellColorPresets"
-              :key="'event-' + preset.label"
-              @click="hasEventColor = preset.color; saveColors()"
-              class="w-10 h-10 rounded-full transition-all hover:scale-110"
-              :class="[hasEventColor === preset.color ? 'ring-4 ring-offset-2 ring-gray-400 scale-110' : '']"
-              :style="{ backgroundColor: preset.color }"
-              :title="preset.label"
-            />
-          </div>
-        </div>
-        
         <div>
           <p class="text-sm font-medium text-gray-700 mb-2">选中日期的默认颜色</p>
           <div class="flex flex-wrap gap-2">
@@ -389,7 +371,7 @@ onUnmounted(() => {
           :style="{
             backgroundColor: getDayEventsWithColor(day).length > 0 ? getEventColorForCell(getDayEventsWithColor(day)) : (isSelected(day) ? selectedDefaultColor : (index % 7 === 0 || index % 7 === 6 ? '#f9fafb' : '#ffffff')),
             color: isSelected(day) ? 'white' : '#374151',
-            borderColor: getDayEventsWithColor(day).length > 0 ? getEventColorForCell(getDayEventsWithColor(day)) : (isSelected(day) ? selectedDefaultColor : '#e5e7eb')
+            borderColor: isSelected(day) ? selectedDefaultColor : '#e5e7eb'
           }"
         >
           <span class="text-xl font-bold z-10">{{ day.date }}</span>

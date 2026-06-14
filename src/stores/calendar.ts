@@ -37,7 +37,7 @@ export const useCalendarStore = defineStore('calendar', () => {
   }
   
   const calendarDays = computed(() => {
-    const days: { date: number; month: number; year: number; isCurrentMonth: boolean; isToday: boolean; events: CalendarEvent[] }[] = []
+    const days: { date: number; month: number; year: number; isCurrentMonth: boolean; isToday: boolean; events: any[] }[] = []
     
     for (let i = firstDayOfMonth.value - 1; i >= 0; i--) {
       const date = daysInPreviousMonth.value - i
@@ -67,16 +67,22 @@ export const useCalendarStore = defineStore('calendar', () => {
     return today.getFullYear() === year && today.getMonth() === month && today.getDate() === date
   }
   
+  function formatDate(date: Date): string {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    return year + '-' + (month < 10 ? '0' + month : month) + '-' + (day < 10 ? '0' + day : day)
+  }
+  
   function getEventsForDate(date: Date): (CalendarEvent | Omit<CalendarEvent, 'startTime' | 'endTime' | 'repeat' | 'endDate'> & { isImportant: true })[] {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = formatDate(date)
     const calendarEvents = events.value.filter(e => {
       const eventDate = e.startTime.split('T')[0]
       if (eventDate === dateStr) return true
       return isRecurringEvent(e, date)
     })
     
-    const importantStore = useImportantStore()
-    const importantEvents = importantStore.events
+    const importantEvents = useImportantStore().events
       .filter(e => e.date === dateStr)
       .map(e => ({
         id: e.id,
@@ -85,7 +91,8 @@ export const useCalendarStore = defineStore('calendar', () => {
         priority: e.priority,
         isImportant: true as const,
         createdAt: e.createdAt,
-        type: e.type
+        type: e.type,
+        color: e.color
       }))
     
     return [...calendarEvents, ...importantEvents]

@@ -4,6 +4,7 @@ import { Plus, X, Trash2, Calendar, Award, Target, Clock, Star, Circle, AlertCir
 import { useImportantStore } from '@/stores/important'
 import { useTodoStore } from '@/stores/todo'
 import type { ImportantEvent } from '@/types'
+import { importantEventTypeColors } from '@/utils/colors'
 
 const store = useImportantStore()
 const todoStore = useTodoStore()
@@ -47,7 +48,7 @@ function loadNewEventDraft() {
     date: new Date().toISOString().split('T')[0],
     type: 'other' as ImportantEvent['type'],
     priority: 'medium' as ImportantEvent['priority'],
-    color: '#f3e8ff'
+    color: importantEventTypeColors.other
   }
 }
 
@@ -58,11 +59,11 @@ function saveNewEventDraft() {
 const newEvent = ref(loadNewEventDraft())
 
 const typeOptions = [
-  { value: 'exam', label: '考试', icon: Award, color: '#ef4444' },
-  { value: 'competition', label: '比赛', icon: Target, color: '#f59e0b' },
-  { value: 'activity', label: '活动', icon: Star, color: '#10b981' },
-  { value: 'deadline', label: '截止', icon: Clock, color: '#8b5cf6' },
-  { value: 'other', label: '其他', icon: Circle, color: '#6b7280' }
+  { value: 'exam', label: '考试', icon: Award, color: importantEventTypeColors.exam },
+  { value: 'competition', label: '比赛', icon: Target, color: importantEventTypeColors.competition },
+  { value: 'activity', label: '活动', icon: Star, color: importantEventTypeColors.activity },
+  { value: 'deadline', label: '截止', icon: Clock, color: importantEventTypeColors.deadline },
+  { value: 'other', label: '其他', icon: Circle, color: importantEventTypeColors.other }
 ]
 
 const priorityLabels = {
@@ -578,7 +579,7 @@ function closeModal() {
                 <button
                   v-for="option in typeOptions"
                   :key="option.value"
-                  @click="newEvent.type = option.value as ImportantEvent['type']"
+                  @click="newEvent.type = option.value as ImportantEvent['type']; newEvent.color = option.color"
                   class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
                   :class="[newEvent.type === option.value ? 'text-white shadow-md shadow-gray-400/50' : 'bg-white/50 text-gray-600 hover:bg-white/70']"
                   :style="newEvent.type === option.value ? { backgroundColor: option.color } : {}"

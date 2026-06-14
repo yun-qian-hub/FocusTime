@@ -1,10 +1,13 @@
 ﻿﻿﻿<script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette, Star } from 'lucide-vue-next'
 import { useCalendarStore } from '@/stores/calendar'
+import { useImportantStore } from '@/stores/important'
 import type { CalendarEvent } from '@/types'
+import { calendarEventTypeColors } from '@/utils/colors'
 
 const store = useCalendarStore()
+const importantStore = useImportantStore()
 
 const showEventModal = ref(false)
 const editingEvent = ref<CalendarEvent | null>(null)
@@ -80,12 +83,12 @@ const repeatOptions = [
 ]
 
 const eventTypeOptions = [
-  { value: 'work', label: '工作', icon: Briefcase },
-  { value: 'study', label: '学习', icon: BookOpen },
-  { value: 'life', label: '生活', icon: Home },
-  { value: 'project', label: '项目', icon: FolderKanban },
-  { value: 'meeting', label: '会议', icon: Users },
-  { value: 'task', label: '任务', icon: ListTodo }
+  { value: 'work', label: '工作', icon: Briefcase, color: calendarEventTypeColors.work },
+  { value: 'study', label: '学习', icon: BookOpen, color: calendarEventTypeColors.study },
+  { value: 'life', label: '生活', icon: Home, color: calendarEventTypeColors.life },
+  { value: 'project', label: '项目', icon: FolderKanban, color: calendarEventTypeColors.project },
+  { value: 'meeting', label: '会议', icon: Users, color: calendarEventTypeColors.meeting },
+  { value: 'task', label: '任务', icon: ListTodo, color: calendarEventTypeColors.task }
 ]
 
 const eventTypeIcons: Record<string, typeof Briefcase> = {
@@ -130,7 +133,7 @@ function openEventModal(event?: CalendarEvent) {
       startTime: `${date}T09:00`,
       endTime: `${date}T10:00`,
       allDay: false,
-      color: '#6366f1',
+      color: calendarEventTypeColors.task,
       repeat: 'none',
       endDate: '',
       eventType: 'task'
@@ -241,16 +244,29 @@ const priorityColors = {
   low: '#dcfce7'
 }
 
-function getEventColorForCell(events: any[]): string {
-  if (events.length === 0) return hasEventColor.value
+function getEventColorForCell(input: any): string {
+  const events = input.events ? input.events : input
+  
+  if (!events || events.length === 0) return 'transparent'
+  
+  const importantEvent = events.find((e: any) => e.isImportant)
+  if (importantEvent) {
+    return importantEvent.color || '#f3e8ff'
+  }
+  
   const firstEvent = events[0]
-  if ((firstEvent as any).isImportant && firstEvent.color) return firstEvent.color
-  if ((firstEvent as any).isImportant) return '#f3e8ff'
+  if (firstEvent.color) return firstEvent.color
+  if (firstEvent.eventType && calendarEventTypeColors[firstEvent.eventType]) {
+    return calendarEventTypeColors[firstEvent.eventType]
+  }
   if (firstEvent.priority && priorityColors[firstEvent.priority as keyof typeof priorityColors]) {
     return priorityColors[firstEvent.priority as keyof typeof priorityColors]
   }
-  if (firstEvent.color) return firstEvent.color
-  return hasEventColor.value
+  return selectedDefaultColor.value
+}
+
+function getDayEventsWithColor(day) {
+  return [...(day.events || [])]
 }
 
 onMounted(() => {
@@ -371,33 +387,33 @@ onUnmounted(() => {
             index % 7 === 0 || index % 7 === 6 ? 'bg-gray-50/30' : ''
           ]"
           :style="{
-            backgroundColor: isSelected(day) ? selectedDefaultColor : (day.events.length > 0 ? getEventColorForCell(day.events) : (index % 7 === 0 || index % 7 === 6 ? '#f9fafb' : '#ffffff')),
+            backgroundColor: getDayEventsWithColor(day).length > 0 ? getEventColorForCell(getDayEventsWithColor(day)) : (isSelected(day) ? selectedDefaultColor : (index % 7 === 0 || index % 7 === 6 ? '#f9fafb' : '#ffffff')),
             color: isSelected(day) ? 'white' : '#374151',
-            borderColor: isSelected(day) ? selectedDefaultColor : (day.events.length > 0 ? getEventColorForCell(day.events) : '#e5e7eb')
+            borderColor: getDayEventsWithColor(day).length > 0 ? getEventColorForCell(getDayEventsWithColor(day)) : (isSelected(day) ? selectedDefaultColor : '#e5e7eb')
           }"
         >
           <span class="text-xl font-bold z-10">{{ day.date }}</span>
           
-          <div v-if="day.events.length > 0" class="absolute bottom-2 left-2 right-2 z-10">
-            <div v-if="day.events.length === 1" class="flex items-center gap-1.5">
+          <div v-if="getDayEventsWithColor(day).length > 0" class="absolute bottom-2 left-2 right-2 z-10">
+            <div v-if="getDayEventsWithColor(day).length === 1" class="flex items-center gap-1.5">
               <span 
-                v-if="(day.events[0] as any).isImportant" 
+                v-if="(getDayEventsWithColor(day)[0] as any).isImportant" 
                 class="w-2 h-2 rounded-full"
                 :style="{ backgroundColor: '#f59e0b' }"
               />
               <span 
                 class="text-xs font-medium truncate px-2 py-0.5 rounded-full"
                 :style="{ 
-                  backgroundColor: getEventColorForCell(day.events),
+                  backgroundColor: getEventColorForCell(getDayEventsWithColor(day)),
                   color: '#374151'
                 }"
               >
-                {{ day.events[0].title }}
+                {{ getDayEventsWithColor(day)[0].title }}
               </span>
             </div>
             <div v-else class="flex flex-wrap gap-1">
               <span
-                v-for="(event, i) in day.events.slice(0, 3)"
+                v-for="(event, i) in getDayEventsWithColor(day).slice(0, 3)"
                 :key="i"
                 class="text-xs font-medium truncate px-2 py-0.5 rounded-full flex items-center gap-1"
                 :style="{ 
@@ -409,23 +425,23 @@ onUnmounted(() => {
                 <span v-if="(event as any).isImportant" class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: '#f59e0b' }" />
                 {{ event.title }}
               </span>
-              <span v-if="day.events.length > 3" class="text-xs px-1.5 rounded-full bg-gray-100 text-gray-600">
-                +{{ day.events.length - 3 }}
+              <span v-if="getDayEventsWithColor(day).length > 3" class="text-xs px-1.5 rounded-full bg-gray-100 text-gray-600">
+                +{{ getDayEventsWithColor(day).length - 3 }}
               </span>
             </div>
           </div>
           
           <div 
-            v-if="day.events.length > 0 && !isSelected(day)" 
+            v-if="getDayEventsWithColor(day).length > 0 && !isSelected(day)" 
             class="absolute top-1 right-1 z-10 flex gap-1"
           >
             <span 
-              v-for="(event, i) in day.events.slice(0, 3)" 
+              v-for="(event, i) in getDayEventsWithColor(day).slice(0, 3)" 
               :key="i"
               class="w-2 h-2 rounded-full border border-gray-300"
               :style="{ backgroundColor: getEventColorForCell([event]) }"
             />
-            <span v-if="day.events.length > 3" class="w-2 h-2 rounded-full bg-gray-200 border border-gray-300" />
+            <span v-if="getDayEventsWithColor(day).length > 3" class="w-2 h-2 rounded-full bg-gray-200 border border-gray-300" />
           </div>
         </div>
       </div>
@@ -641,9 +657,10 @@ onUnmounted(() => {
                 <button
                   v-for="option in eventTypeOptions"
                   :key="option.value"
-                  @click="newEvent.eventType = option.value as CalendarEvent['eventType']"
+                  @click="newEvent.eventType = option.value as CalendarEvent['eventType']; newEvent.color = option.color"
                   class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                  :class="[newEvent.eventType === option.value ? 'bg-primary text-white' : 'bg-white/50 text-gray-600 hover:bg-white/70']"
+                  :class="[newEvent.eventType === option.value ? 'text-white' : 'bg-white/50 text-gray-600 hover:bg-white/70']"
+                  :style="newEvent.eventType === option.value ? { backgroundColor: option.color } : {}"
                 >
                   <component :is="option.icon" :size="14" />
                   {{ option.label }}

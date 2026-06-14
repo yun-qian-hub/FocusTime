@@ -1,5 +1,50 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+dev-dist/
+
+# Vite cache
+.vite/
+
+# Environment variables (may contain secrets)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Logs
 *.log
-.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor & IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated
+.DS_Store
+.DS_Store?._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Package archives
+*.tgz
+*.tar.gz
+
+# Optional: lock file for libraries (keep it for apps)
+# package-lock.json
+# yarn.lock

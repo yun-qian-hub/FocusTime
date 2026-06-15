@@ -95,7 +95,7 @@ function confirmReset() {
   importantStore.events = []
 
   localStorage.removeItem('task_manager_todos')
-  localStorage.removeItem('task_manager_calendar_events')
+  localStorage.removeItem('task_manager_events')
   localStorage.removeItem('task_manager_notes')
   localStorage.removeItem('task_manager_alarms')
   localStorage.removeItem('task_manager_important_events')

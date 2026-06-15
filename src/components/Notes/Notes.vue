@@ -55,7 +55,8 @@ function formatDate(dateStr: string): string {
 
 function getPreview(content: string): string {
   const trimmed = content.trim()
-  return trimmed.length > 50 ? trimmed.substring(0, 50) + '...' : trimmed
+  const firstLine = trimmed.split('\n')[0] || ''
+  return firstLine.length > 40 ? firstLine.substring(0, 40) + '...' : firstLine
 }
 </script>
 
@@ -98,7 +99,7 @@ function getPreview(content: string): string {
           ]"
             :style="{ backgroundColor: note.color + '80', borderColor: note.color + '40' }"
           >
-            <p class="text-gray-800 font-medium">{{ getPreview(note.content) }}</p>
+            <p class="text-gray-800 font-medium truncate">{{ getPreview(note.content) }}</p>
             
             <div class="flex items-center justify-between mt-3">
               <div v-if="note.tags.length > 0" class="flex gap-1 flex-wrap">

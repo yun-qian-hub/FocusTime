@@ -6,6 +6,7 @@ import Todo from '@/components/Todo/Todo.vue'
 import Notes from '@/components/Notes/Notes.vue'
 import Alarm from '@/components/Alarm/Alarm.vue'
 import Important from '@/components/Important/Important.vue'
+import Period from '@/components/Period/Period.vue'
 import DataManager from '@/components/DataManager/DataManager.vue'
 import type { TabType } from '@/types'
 
@@ -21,12 +22,13 @@ function handleTabChange(tab: TabType) {
     <Sidebar :activeTab="activeTab" @tabChange="handleTabChange" />
     
     <main class="flex-1 overflow-hidden">
-      <Transition name="fade" mode="out-in">
+      <Transition name="fade">
         <Calendar v-if="activeTab === 'calendar'" key="calendar" />
         <Todo v-else-if="activeTab === 'todo'" key="todo" />
         <Notes v-else-if="activeTab === 'notes'" key="notes" />
         <Alarm v-else-if="activeTab === 'alarm'" key="alarm" />
         <Important v-else-if="activeTab === 'important'" key="important" />
+        <Period v-else-if="activeTab === 'period'" key="period" />
         <DataManager v-else-if="activeTab === 'datamanager'" key="datamanager" />
       </Transition>
     </main>

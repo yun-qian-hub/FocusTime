@@ -6,6 +6,7 @@ import { useCalendarStore } from '@/stores/calendar'
 import { useNotesStore } from '@/stores/notes'
 import { useAlarmStore } from '@/stores/alarm'
 import { useImportantStore } from '@/stores/important'
+import { usePeriodStore } from '@/stores/period'
 import { encryptData, decryptData } from '@/utils/crypto'
 
 const todoStore = useTodoStore()
@@ -13,6 +14,7 @@ const calendarStore = useCalendarStore()
 const notesStore = useNotesStore()
 const alarmStore = useAlarmStore()
 const importantStore = useImportantStore()
+const periodStore = usePeriodStore()
 
 const showResetConfirm = ref(false)
 const resetCountdown = ref(3)
@@ -41,6 +43,7 @@ interface ExportData {
   notes?: any[]
   alarms?: any[]
   importantEvents?: any[]
+  periodEvents?: any[]
   algorithm?: string
   salt?: string
   iterations?: number
@@ -55,7 +58,8 @@ async function exportData() {
     calendarEvents: calendarStore.events,
     notes: notesStore.notes,
     alarms: alarmStore.alarms,
-    importantEvents: importantStore.events
+    importantEvents: importantStore.events,
+    periodEvents: periodStore.periodEvents
   }
 
   let exportData: ExportData = {
@@ -140,12 +144,14 @@ function confirmReset() {
   notesStore.notes = []
   alarmStore.alarms = []
   importantStore.events = []
+  periodStore.periodEvents = []
 
   localStorage.removeItem('task_manager_todos')
   localStorage.removeItem('task_manager_events')
   localStorage.removeItem('task_manager_notes')
   localStorage.removeItem('task_manager_alarms')
   localStorage.removeItem('task_manager_important_events')
+  localStorage.removeItem('task_manager_period_events')
   localStorage.removeItem('task_manager_calendar_colors')
 
   showResetConfirm.value = false
@@ -221,6 +227,7 @@ async function importData() {
       localStorage.removeItem('task_manager_notes')
       localStorage.removeItem('task_manager_alarms')
       localStorage.removeItem('task_manager_important_events')
+      localStorage.removeItem('task_manager_period_events')
       localStorage.removeItem('task_manager_calendar_colors')
 
       if (importData.todos) {
@@ -241,6 +248,9 @@ async function importData() {
           color: event.color || '#f3e8ff'
         }))
         localStorage.setItem('task_manager_important_events', JSON.stringify(eventsWithColor))
+      }
+      if (importData.periodEvents) {
+        localStorage.setItem('task_manager_period_events', JSON.stringify(importData.periodEvents))
       }
 
       importMessage.value = '数据导入成功！页面将刷新'
@@ -279,7 +289,8 @@ const stats = {
   calendarEvents: calendarStore.events.length,
   notes: notesStore.notes.length,
   alarms: alarmStore.alarms.length,
-  importantEvents: importantStore.events.length
+  importantEvents: importantStore.events.length,
+  periodEvents: periodStore.periodEvents.length
 }
 </script>
 
@@ -290,7 +301,7 @@ const stats = {
       <p class="text-gray-500 mt-1">管理您的所有数据，支持导出、导入和重置</p>
     </header>
     
-    <div class="grid grid-cols-5 gap-4">
+    <div class="grid grid-cols-6 gap-4">
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-primary">{{ stats.todos }}</span>
         <span class="text-sm text-gray-500">待办事项</span>
@@ -310,6 +321,10 @@ const stats = {
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-orange-500">{{ stats.importantEvents }}</span>
         <span class="text-sm text-gray-500">重要事件</span>
+      </div>
+      <div class="glass-card p-4 flex flex-col items-center justify-center">
+        <span class="text-2xl font-bold text-purple-500">{{ stats.periodEvents }}</span>
+        <span class="text-sm text-gray-500">周期事件</span>
       </div>
     </div>
     

@@ -2,7 +2,8 @@ const STORAGE_KEYS = {
   TODOS: 'task_manager_todos',
   EVENTS: 'task_manager_events',
   NOTES: 'task_manager_notes',
-  ALARMS: 'task_manager_alarms'
+  ALARMS: 'task_manager_alarms',
+  PERIOD_EVENTS: 'task_manager_period_events'
 }
 
 export function getTodos(): any[] {
@@ -55,4 +56,17 @@ export function getAlarms(): any[] {
 
 export function saveAlarms(alarms: any[]): void {
   localStorage.setItem(STORAGE_KEYS.ALARMS, JSON.stringify(alarms))
+}
+
+export function getPeriodEvents(): any[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.PERIOD_EVENTS)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+export function savePeriodEvents(events: any[]): void {
+  localStorage.setItem(STORAGE_KEYS.PERIOD_EVENTS, JSON.stringify(events))
 }

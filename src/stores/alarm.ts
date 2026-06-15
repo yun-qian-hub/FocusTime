@@ -3,10 +3,13 @@ import { ref, computed } from 'vue'
 import type { Alarm } from '@/types'
 import { getAlarms, saveAlarms } from '@/utils/storage'
 
+let backgroundIntervalId: number | null = null
+
 export const useAlarmStore = defineStore('alarm', () => {
   const alarms = ref<Alarm[]>(getAlarms())
   const isAlarmRinging = ref(false)
   const ringingAlarm = ref<Alarm | null>(null)
+  const lastTriggeredTime = ref('')
   
   const sortedAlarms = computed(() => {
     return [...alarms.value].sort((a, b) => a.time.localeCompare(b.time))
@@ -15,6 +18,27 @@ export const useAlarmStore = defineStore('alarm', () => {
   const activeAlarms = computed(() => {
     return sortedAlarms.value.filter(a => a.enabled)
   })
+  
+  function startBackgroundTimer() {
+    if (backgroundIntervalId) return
+    
+    if ('Notification' in window) {
+      Notification.requestPermission()
+    }
+    
+    checkAlarms()
+    
+    backgroundIntervalId = window.setInterval(() => {
+      checkAlarms()
+    }, 1000)
+  }
+  
+  function stopBackgroundTimer() {
+    if (backgroundIntervalId) {
+      clearInterval(backgroundIntervalId)
+      backgroundIntervalId = null
+    }
+  }
   
   function addAlarm(time: string, label?: string, repeat: Alarm['repeat'] = 'none', ringtone: string = 'default') {
     const newAlarm: Alarm = {
@@ -124,6 +148,9 @@ export const useAlarmStore = defineStore('alarm', () => {
     const now = new Date()
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
     
+    if (lastTriggeredTime.value === currentTime) return
+    lastTriggeredTime.value = currentTime
+    
     alarms.value.forEach(alarm => {
       if (!alarm.enabled || alarm.time !== currentTime) return
       
@@ -165,6 +192,8 @@ export const useAlarmStore = defineStore('alarm', () => {
     deleteAlarm,
     triggerAlarm,
     dismissAlarm,
-    checkAlarms
+    checkAlarms,
+    startBackgroundTimer,
+    stopBackgroundTimer
   }
 })

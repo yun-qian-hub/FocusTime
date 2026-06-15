@@ -63,4 +63,24 @@ export interface ImportantEvent {
   createdAt: string
 }
 
-export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager'
+export interface PeriodSubtask {
+  id: number
+  title: string
+  completed: boolean
+}
+
+export interface PeriodEvent {
+  id: number
+  title: string
+  description?: string
+  startDate: string
+  endDate: string
+  color: string
+  progress: number
+  completed: boolean
+  createdAt: string
+  eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
+  subtasks?: PeriodSubtask[]
+}
+
+export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period'

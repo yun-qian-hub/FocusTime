@@ -29,25 +29,11 @@ const ringtones = [
   { value: 'nature', label: '自然音效' }
 ]
 
-let intervalId: number | null = null
-
 onMounted(() => {
-  if ('Notification' in window) {
-    Notification.requestPermission()
-  }
-  
-  intervalId = window.setInterval(() => {
-    store.checkAlarms()
-  }, 60000)
-  
-  store.checkAlarms()
+  store.startBackgroundTimer()
 })
 
-onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId)
-  }
-})
+onUnmounted(() => {})
 
 function openAddModal(alarm?: Alarm) {
   if (alarm) {

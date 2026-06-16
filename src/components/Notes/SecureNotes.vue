@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, X, Lock, Unlock, Trash2, Key } from 'lucide-vue-next'
+import { Plus, X, Lock, Unlock, Trash2, Key, AlertTriangle } from 'lucide-vue-next'
 import { useSecureNotesStore } from '@/stores/secureNotes'
 
 const store = useSecureNotesStore()
 
 const showCreateModal = ref(false)
 const showUnlockModal = ref(false)
+const showDeleteConfirm = ref(false)
 const unlockTargetId = ref<number | null>(null)
+const deleteTargetId = ref<number | null>(null)
 const unlockError = ref('')
 
 const newTitle = ref('')
@@ -85,7 +87,21 @@ function formatDate(dateStr: string): string {
 }
 
 function deleteNote(id: number) {
-  store.deleteNote(id)
+  deleteTargetId.value = id
+  showDeleteConfirm.value = true
+}
+
+function confirmDelete() {
+  if (deleteTargetId.value) {
+    store.deleteNote(deleteTargetId.value)
+  }
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
 }
 </script>
 
@@ -316,6 +332,45 @@ function deleteNote(id: number) {
                 解锁
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    
+    <Teleport to="body">
+      <div
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        @click.self="cancelDelete"
+      >
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <AlertTriangle :size="24" class="text-red-500" />
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">确认删除加密记事本</h3>
+              <p class="text-sm text-gray-500">此操作无法撤销</p>
+            </div>
+          </div>
+          
+          <p class="text-gray-600 mb-6">
+            确定要删除这个加密记事本吗？删除后所有加密内容将永久丢失且无法恢复。
+          </p>
+          
+          <div class="flex gap-3">
+            <button
+              @click="cancelDelete"
+              class="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="confirmDelete"
+              class="flex-1 px-4 py-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-medium"
+            >
+              删除
+            </button>
           </div>
         </div>
       </div>

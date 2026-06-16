@@ -3,7 +3,10 @@ const STORAGE_KEYS = {
   EVENTS: 'task_manager_events',
   NOTES: 'task_manager_notes',
   ALARMS: 'task_manager_alarms',
-  PERIOD_EVENTS: 'task_manager_period_events'
+  PERIOD_EVENTS: 'task_manager_period_events',
+  SCHEDULE_COURSES: 'task_manager_schedule_courses',
+  SCHEDULE_SETTINGS: 'task_manager_schedule_settings',
+  SCHEDULE_OVERRIDES: 'task_manager_schedule_overrides'
 }
 
 export function getTodos(): any[] {
@@ -69,4 +72,54 @@ export function getPeriodEvents(): any[] {
 
 export function savePeriodEvents(events: any[]): void {
   localStorage.setItem(STORAGE_KEYS.PERIOD_EVENTS, JSON.stringify(events))
+}
+
+export function getScheduleCourses(): any[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULE_COURSES)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveScheduleCourses(courses: any[]): void {
+  localStorage.setItem(STORAGE_KEYS.SCHEDULE_COURSES, JSON.stringify(courses))
+}
+
+export function getScheduleSettings(): any {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULE_SETTINGS)
+    if (data) {
+      const parsed = JSON.parse(data)
+      if (parsed.baseWeekNumber !== undefined) {
+        return parsed
+      }
+      return {
+        startDate: parsed.startDate || '2026-02-23',
+        baseWeekNumber: 1,
+        baseWeekType: (parsed.currentWeekType || 'odd') as 'odd' | 'even'
+      }
+    }
+    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const }
+  } catch {
+    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const }
+  }
+}
+
+export function saveScheduleSettings(settings: any): void {
+  localStorage.setItem(STORAGE_KEYS.SCHEDULE_SETTINGS, JSON.stringify(settings))
+}
+
+export function getScheduleOverrides(): any[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULE_OVERRIDES)
+    return data ? JSON.parse(data) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveScheduleOverrides(overrides: any[]): void {
+  localStorage.setItem(STORAGE_KEYS.SCHEDULE_OVERRIDES, JSON.stringify(overrides))
 }

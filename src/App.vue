@@ -7,6 +7,7 @@ import Notes from '@/components/Notes/Notes.vue'
 import Alarm from '@/components/Alarm/Alarm.vue'
 import Important from '@/components/Important/Important.vue'
 import Period from '@/components/Period/Period.vue'
+import Schedule from '@/components/Schedule/Schedule.vue'
 import DataManager from '@/components/DataManager/DataManager.vue'
 import type { TabType } from '@/types'
 
@@ -29,6 +30,7 @@ function handleTabChange(tab: TabType) {
         <Alarm v-else-if="activeTab === 'alarm'" key="alarm" />
         <Important v-else-if="activeTab === 'important'" key="important" />
         <Period v-else-if="activeTab === 'period'" key="period" />
+        <Schedule v-else-if="activeTab === 'schedule'" key="schedule" />
         <DataManager v-else-if="activeTab === 'datamanager'" key="datamanager" />
       </Transition>
     </main>

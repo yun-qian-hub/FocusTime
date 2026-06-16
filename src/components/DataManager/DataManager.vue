@@ -7,6 +7,7 @@ import { useNotesStore } from '@/stores/notes'
 import { useAlarmStore } from '@/stores/alarm'
 import { useImportantStore } from '@/stores/important'
 import { usePeriodStore } from '@/stores/period'
+import { useScheduleStore } from '@/stores/schedule'
 import { encryptData, decryptData } from '@/utils/crypto'
 
 const todoStore = useTodoStore()
@@ -15,6 +16,7 @@ const notesStore = useNotesStore()
 const alarmStore = useAlarmStore()
 const importantStore = useImportantStore()
 const periodStore = usePeriodStore()
+const scheduleStore = useScheduleStore()
 
 const showResetConfirm = ref(false)
 const resetCountdown = ref(3)
@@ -44,6 +46,7 @@ interface ExportData {
   alarms?: any[]
   importantEvents?: any[]
   periodEvents?: any[]
+  scheduleCourses?: any[]
   algorithm?: string
   salt?: string
   iterations?: number
@@ -59,7 +62,9 @@ async function exportData() {
     notes: notesStore.notes,
     alarms: alarmStore.alarms,
     importantEvents: importantStore.events,
-    periodEvents: periodStore.periodEvents
+    periodEvents: periodStore.periodEvents,
+    scheduleCourses: scheduleStore.courses,
+    scheduleOverrides: scheduleStore.overrides
   }
 
   let exportData: ExportData = {
@@ -145,6 +150,7 @@ function confirmReset() {
   alarmStore.alarms = []
   importantStore.events = []
   periodStore.periodEvents = []
+  scheduleStore.courses = []
 
   localStorage.removeItem('task_manager_todos')
   localStorage.removeItem('task_manager_events')
@@ -152,6 +158,9 @@ function confirmReset() {
   localStorage.removeItem('task_manager_alarms')
   localStorage.removeItem('task_manager_important_events')
   localStorage.removeItem('task_manager_period_events')
+  localStorage.removeItem('task_manager_schedule_courses')
+  localStorage.removeItem('task_manager_schedule_settings')
+  localStorage.removeItem('task_manager_schedule_overrides')
   localStorage.removeItem('task_manager_calendar_colors')
 
   showResetConfirm.value = false
@@ -228,6 +237,8 @@ async function importData() {
       localStorage.removeItem('task_manager_alarms')
       localStorage.removeItem('task_manager_important_events')
       localStorage.removeItem('task_manager_period_events')
+      localStorage.removeItem('task_manager_schedule_courses')
+      localStorage.removeItem('task_manager_schedule_settings')
       localStorage.removeItem('task_manager_calendar_colors')
 
       if (importData.todos) {
@@ -251,6 +262,12 @@ async function importData() {
       }
       if (importData.periodEvents) {
         localStorage.setItem('task_manager_period_events', JSON.stringify(importData.periodEvents))
+      }
+      if (importData.scheduleCourses) {
+        localStorage.setItem('task_manager_schedule_courses', JSON.stringify(importData.scheduleCourses))
+      }
+      if (importData.scheduleOverrides) {
+        localStorage.setItem('task_manager_schedule_overrides', JSON.stringify(importData.scheduleOverrides))
       }
 
       importMessage.value = '数据导入成功！页面将刷新'
@@ -290,7 +307,8 @@ const stats = {
   notes: notesStore.notes.length,
   alarms: alarmStore.alarms.length,
   importantEvents: importantStore.events.length,
-  periodEvents: periodStore.periodEvents.length
+  periodEvents: periodStore.periodEvents.length,
+  scheduleCourses: scheduleStore.courses.length
 }
 </script>
 
@@ -301,7 +319,7 @@ const stats = {
       <p class="text-gray-500 mt-1">管理您的所有数据，支持导出、导入和重置</p>
     </header>
     
-    <div class="grid grid-cols-6 gap-4">
+    <div class="grid grid-cols-7 gap-4">
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-primary">{{ stats.todos }}</span>
         <span class="text-sm text-gray-500">待办事项</span>
@@ -325,6 +343,10 @@ const stats = {
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-purple-500">{{ stats.periodEvents }}</span>
         <span class="text-sm text-gray-500">周期事件</span>
+      </div>
+      <div class="glass-card p-4 flex flex-col items-center justify-center">
+        <span class="text-2xl font-bold text-teal-500">{{ stats.scheduleCourses }}</span>
+        <span class="text-sm text-gray-500">课程</span>
       </div>
     </div>
     

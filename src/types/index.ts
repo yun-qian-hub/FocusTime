@@ -83,4 +83,39 @@ export interface PeriodEvent {
   subtasks?: PeriodSubtask[]
 }
 
-export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period'
+export interface ScheduleCourse {
+  id: number
+  title: string
+  teacher?: string
+  classroom?: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  weekType: 'all' | 'odd' | 'even'
+  color: string
+  createdAt: string
+  remark?: string
+}
+
+export interface ScheduleOverride {
+  id: number
+  courseId: number | null
+  date: string
+  action: 'remove' | 'add' | 'modify'
+  title?: string
+  teacher?: string
+  classroom?: string
+  startTime?: string
+  endTime?: string
+  color?: string
+  remark?: string
+  createdAt: string
+}
+
+export interface ScheduleSettings {
+  startDate: string
+  baseWeekNumber: number
+  baseWeekType: 'odd' | 'even'
+}
+
+export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule'

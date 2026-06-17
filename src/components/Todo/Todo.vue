@@ -299,7 +299,7 @@ function addSubtask(todoId: number) {
         </button>
       </div>
       
-      <div v-else class="flex-1 overflow-y-auto space-y-3 scrollbar-hide">
+      <div v-else class="overflow-y-auto space-y-3" style="max-height: calc(100vh - 380px);">
         <div
           v-for="todo in store.displayedTodos"
           :key="todo.id"

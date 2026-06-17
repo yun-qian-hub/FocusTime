@@ -8,6 +8,7 @@ import { useAlarmStore } from '@/stores/alarm'
 import { useImportantStore } from '@/stores/important'
 import { usePeriodStore } from '@/stores/period'
 import { useScheduleStore } from '@/stores/schedule'
+import { useSecureNotesStore } from '@/stores/secureNotes'
 import { encryptData, decryptData } from '@/utils/crypto'
 
 const todoStore = useTodoStore()
@@ -17,6 +18,7 @@ const alarmStore = useAlarmStore()
 const importantStore = useImportantStore()
 const periodStore = usePeriodStore()
 const scheduleStore = useScheduleStore()
+const secureNotesStore = useSecureNotesStore()
 
 const showResetConfirm = ref(false)
 const resetCountdown = ref(3)
@@ -60,6 +62,7 @@ async function exportData() {
     todos: todoStore.todos,
     calendarEvents: calendarStore.events,
     notes: notesStore.notes,
+    secureNotes: secureNotesStore.notes,
     alarms: alarmStore.alarms,
     importantEvents: importantStore.events,
     periodEvents: periodStore.periodEvents,
@@ -151,10 +154,12 @@ function confirmReset() {
   importantStore.events = []
   periodStore.periodEvents = []
   scheduleStore.courses = []
+  secureNotesStore.notes = []
 
   localStorage.removeItem('task_manager_todos')
   localStorage.removeItem('task_manager_events')
   localStorage.removeItem('task_manager_notes')
+  localStorage.removeItem('task_manager_secure_notes')
   localStorage.removeItem('task_manager_alarms')
   localStorage.removeItem('task_manager_important_events')
   localStorage.removeItem('task_manager_period_events')
@@ -250,8 +255,8 @@ async function importData() {
       if (importData.notes) {
         localStorage.setItem('task_manager_notes', JSON.stringify(importData.notes))
       }
-      if (importData.alarms) {
-        localStorage.setItem('task_manager_alarms', JSON.stringify(importData.alarms))
+      if (importData.secureNotes) {
+        localStorage.setItem('task_manager_secure_notes', JSON.stringify(importData.secureNotes))
       }
       if (importData.importantEvents) {
         const eventsWithColor = importData.importantEvents.map((event: any) => ({
@@ -305,6 +310,7 @@ const stats = {
   todos: todoStore.todos.length,
   calendarEvents: calendarStore.events.length,
   notes: notesStore.notes.length,
+  secureNotes: secureNotesStore.notes.length,
   alarms: alarmStore.alarms.length,
   importantEvents: importantStore.events.length,
   periodEvents: periodStore.periodEvents.length,
@@ -319,7 +325,7 @@ const stats = {
       <p class="text-gray-500 mt-1">管理您的所有数据，支持导出、导入和重置</p>
     </header>
     
-    <div class="grid grid-cols-7 gap-4">
+    <div class="grid grid-cols-8 gap-4">
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-primary">{{ stats.todos }}</span>
         <span class="text-sm text-gray-500">待办事项</span>
@@ -331,6 +337,10 @@ const stats = {
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-amber-500">{{ stats.notes }}</span>
         <span class="text-sm text-gray-500">便签</span>
+      </div>
+      <div class="glass-card p-4 flex flex-col items-center justify-center">
+        <span class="text-2xl font-bold text-purple-600">{{ stats.secureNotes }}</span>
+        <span class="text-sm text-gray-500">加密记事本</span>
       </div>
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-emerald-500">{{ stats.alarms }}</span>

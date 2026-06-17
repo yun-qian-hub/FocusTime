@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, X, Tag, Trash2, AlertTriangle } from 'lucide-vue-next'
+import { Plus, X, Tag, Trash2, AlertTriangle, Lock, Unlock } from 'lucide-vue-next'
 import { useNotesStore, NOTE_COLORS } from '@/stores/notes'
+import { useSecureNotesStore } from '@/stores/secureNotes'
 
 const store = useNotesStore()
+const secureStore = useSecureNotesStore()
 
 const newNoteContent = ref('')
 const showTagInput = ref(false)
@@ -12,7 +14,109 @@ const newTag = ref('')
 const showDeleteConfirm = ref(false)
 const deleteTargetId = ref<number | null>(null)
 
+const showSecureDeleteConfirm = ref(false)
+const secureDeleteTargetId = ref<number | null>(null)
+
+const showCreateSecureModal = ref(false)
+const showUnlockModal = ref(false)
+const unlockTargetId = ref<number | null>(null)
+const unlockError = ref('')
+
+const newSecureTitle = ref('')
+const newSecureContent = ref('')
+const newSecurePassword = ref('')
+const secureConfirmPassword = ref('')
+const createSecureError = ref('')
+
+const unlockPassword = ref('')
+
+const activeTab = ref<'normal' | 'secure'>('normal')
+
 const commonlyUsedTags = ['工作', '生活', '学习', '想法', '待办']
+
+const secureEditingContent = computed({
+  get: () => secureStore.unlockedContent,
+  set: (value) => {
+    if (secureStore.selectedNoteId) {
+      secureStore.updateNote(secureStore.selectedNoteId, { content: value })
+    }
+  }
+})
+
+const secureSelectedNote = computed(() => {
+  if (!secureStore.selectedNoteId) return null
+  return secureStore.notes.find(n => n.id === secureStore.selectedNoteId) || null
+})
+
+async function createSecureNote() {
+  if (!newSecureTitle.value.trim()) {
+    createSecureError.value = '请输入标题'
+    return
+  }
+  if (!newSecurePassword.value) {
+    createSecureError.value = '请输入密码'
+    return
+  }
+  if (newSecurePassword.value !== secureConfirmPassword.value) {
+    createSecureError.value = '两次输入的密码不一致'
+    return
+  }
+  
+  await secureStore.createNote(newSecureTitle.value, newSecureContent.value, newSecurePassword.value)
+  resetSecureCreateForm()
+  showCreateSecureModal.value = false
+}
+
+function resetSecureCreateForm() {
+  newSecureTitle.value = ''
+  newSecureContent.value = ''
+  newSecurePassword.value = ''
+  secureConfirmPassword.value = ''
+  createSecureError.value = ''
+}
+
+function openUnlockModal(id: number) {
+  unlockTargetId.value = id
+  unlockPassword.value = ''
+  unlockError.value = ''
+  showUnlockModal.value = true
+}
+
+async function handleUnlock() {
+  if (!unlockTargetId.value) return
+  
+  const success = await secureStore.unlockNote(unlockTargetId.value, unlockPassword.value)
+  if (success) {
+    showUnlockModal.value = false
+    unlockPassword.value = ''
+    unlockError.value = ''
+  } else {
+    unlockError.value = '密码错误，请重试'
+  }
+}
+
+function deleteSecureNote(id: number) {
+  secureDeleteTargetId.value = id
+  showSecureDeleteConfirm.value = true
+}
+
+function confirmSecureDelete() {
+  if (secureDeleteTargetId.value) {
+    secureStore.deleteNote(secureDeleteTargetId.value)
+  }
+  showSecureDeleteConfirm.value = false
+  secureDeleteTargetId.value = null
+}
+
+function cancelSecureDelete() {
+  showSecureDeleteConfirm.value = false
+  secureDeleteTargetId.value = null
+}
+
+function formatSecureDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
 
 const selectedNoteContent = computed({
   get: () => store.selectedNote?.content || '',
@@ -81,10 +185,28 @@ function getPreview(content: string): string {
   <div class="flex-1 flex flex-col gap-6 p-6">
     <header>
       <h1 class="text-2xl font-bold text-gray-800">便签</h1>
-      <p class="text-gray-500 mt-1">记录你的想法和灵感</p>
+      <p class="text-gray-500 mt-1">{{ activeTab === 'normal' ? '记录你的想法和灵感' : '需要密码才能访问的安全记事本' }}</p>
     </header>
     
-    <div class="glass-card p-6 flex-1 flex gap-6 overflow-hidden">
+    <div class="flex items-center gap-2">
+      <button
+        @click="activeTab = 'normal'"
+        class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+        :class="activeTab === 'normal' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+      >
+        普通便签
+      </button>
+      <button
+        @click="activeTab = 'secure'"
+        class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+        :class="activeTab === 'secure' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+      >
+        <Lock :size="14" />
+        加密记事本
+      </button>
+    </div>
+    
+    <div v-if="activeTab === 'normal'" class="glass-card p-6 flex-1 flex gap-6 overflow-hidden">
       <div class="w-80 flex flex-col gap-4 overflow-hidden">
         <div class="flex items-center gap-2">
           <input
@@ -236,6 +358,104 @@ function getPreview(content: string): string {
       </div>
     </div>
     
+    <div v-else class="glass-card p-6 flex-1 flex gap-6 overflow-hidden">
+      <div class="w-80 flex flex-col gap-4 overflow-hidden">
+        <div class="flex items-center gap-2">
+          <button
+            @click="showCreateSecureModal = true"
+            class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all flex items-center justify-center gap-2 font-medium"
+          >
+            <Plus :size="18" />
+            创建加密记事本
+          </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto space-y-3 scrollbar-hide">
+          <div
+            v-for="note in secureStore.sortedNotes"
+            :key="note.id"
+            @click="secureStore.isUnlocked(note.id) ? (() => {})() : openUnlockModal(note.id)"
+            class="p-4 rounded-xl cursor-pointer transition-all border"
+            :class="[
+              secureStore.selectedNoteId === note.id 
+                ? 'shadow-lg bg-white/90 border-purple-300' 
+                : 'hover:shadow-md border-gray-200'
+            ]"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <p class="text-gray-800 font-medium flex-1 truncate">{{ note.title }}</p>
+              <button
+                @click.stop="deleteSecureNote(note.id)"
+                class="w-6 h-6 rounded-lg hover:bg-red-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+              >
+                <Trash2 :size="14" class="text-red-500" />
+              </button>
+            </div>
+            
+            <div class="flex items-center gap-2 mt-2">
+              <Lock v-if="!secureStore.isUnlocked(note.id)" :size="12" class="text-purple-500" />
+              <Unlock v-else :size="12" class="text-green-500" />
+              <span class="text-xs text-gray-400">{{ formatSecureDate(note.updatedAt) }}</span>
+            </div>
+          </div>
+          
+          <div v-if="secureStore.notes.length === 0" class="flex flex-col items-center justify-center text-gray-400 py-12">
+            <Lock :size="32" class="mb-2 opacity-50" />
+            <p>还没有加密记事本</p>
+            <p class="text-sm">点击上方按钮创建第一个</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex-1 flex flex-col">
+        <div v-if="secureSelectedNote && secureStore.isUnlocked(secureSelectedNote.id)" class="flex-1 glass-card rounded-xl overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between p-4 border-b border-gray-100">
+            <input
+              :value="secureSelectedNote.title"
+              @input="secureStore.updateNote(secureSelectedNote.id, { title: ($event.target as HTMLInputElement).value })"
+              class="text-lg font-bold text-gray-800 bg-transparent outline-none"
+              placeholder="标题"
+            />
+            <div class="flex items-center gap-2">
+              <button
+                @click="secureStore.lockNote()"
+                class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-100 transition-all"
+                title="锁定"
+              >
+                <Lock :size="16" />
+              </button>
+              <button
+                @click="deleteSecureNote(secureSelectedNote.id)"
+                class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center"
+              >
+                <Trash2 :size="16" class="text-red-500" />
+              </button>
+            </div>
+          </div>
+          
+          <textarea
+            v-model="secureEditingContent"
+            class="flex-1 p-6 bg-transparent resize-none outline-none text-gray-800 text-lg leading-relaxed"
+            placeholder="开始记录...（内容已加密）"
+          />
+          
+          <div class="p-4 border-t border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-sm text-gray-500">
+              <Unlock :size="14" class="text-green-500" />
+              <span>已解锁</span>
+            </div>
+            <span class="text-xs text-gray-400">上次更新: {{ formatSecureDate(secureSelectedNote.updatedAt) }}</span>
+          </div>
+        </div>
+        
+        <div v-else class="flex-1 glass-card rounded-xl flex flex-col items-center justify-center text-gray-400">
+          <Lock :size="48" class="mb-4 opacity-30" />
+          <p class="text-lg">选择一个加密记事本</p>
+          <p class="text-sm mt-2">输入密码后才能查看内容</p>
+        </div>
+      </div>
+    </div>
+    
     <Teleport to="body">
       <div
         v-if="showDeleteConfirm"
@@ -270,6 +490,172 @@ function getPreview(content: string): string {
             >
               删除
             </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    
+    <Teleport to="body">
+      <div
+        v-if="showSecureDeleteConfirm"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        @click.self="cancelSecureDelete"
+      >
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <AlertTriangle :size="24" class="text-red-500" />
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-gray-800">确认删除加密记事本</h3>
+              <p class="text-sm text-gray-500">此操作无法撤销</p>
+            </div>
+          </div>
+          
+          <p class="text-gray-600 mb-6">
+            确定要删除这个加密记事本吗？删除后所有加密内容将永久丢失且无法恢复。
+          </p>
+          
+          <div class="flex gap-3">
+            <button
+              @click="cancelSecureDelete"
+              class="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="confirmSecureDelete"
+              class="flex-1 px-4 py-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all font-medium"
+            >
+              删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    
+    <Teleport to="body">
+      <div
+        v-if="showCreateSecureModal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        @click.self="showCreateSecureModal = false"
+      >
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-800">创建加密记事本</h2>
+            <button @click="showCreateSecureModal = false" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+              <X :size="18" class="text-gray-500" />
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">标题</label>
+              <input
+                v-model="newSecureTitle"
+                type="text"
+                class="input-field w-full"
+                placeholder="输入记事本标题"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">内容</label>
+              <textarea
+                v-model="newSecureContent"
+                class="input-field w-full h-32 resize-none"
+                placeholder="输入要加密的内容..."
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">设置密码</label>
+              <input
+                v-model="newSecurePassword"
+                type="password"
+                class="input-field w-full"
+                placeholder="输入密码"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+              <input
+                v-model="secureConfirmPassword"
+                type="password"
+                class="input-field w-full"
+                placeholder="再次输入密码"
+              />
+            </div>
+            
+            <div v-if="createSecureError" class="flex items-center gap-2 p-3 rounded-xl bg-red-50">
+              <X :size="18" class="text-red-500" />
+              <span class="text-red-600 text-sm">{{ createSecureError }}</span>
+            </div>
+          </div>
+          
+          <div class="flex gap-3 mt-6">
+            <button
+              @click="showCreateSecureModal = false"
+              class="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-medium"
+            >
+              取消
+            </button>
+            <button
+              @click="createSecureNote"
+              class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all font-medium"
+            >
+              创建
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+    
+    <Teleport to="body">
+      <div
+        v-if="showUnlockModal"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        @click.self="showUnlockModal = false"
+      >
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6">
+          <div class="flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+              <Lock :size="32" class="text-purple-600" />
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">输入密码解锁</h2>
+            <p class="text-gray-500 mb-6">请输入密码以查看加密内容</p>
+            
+            <div class="w-full">
+              <input
+                v-model="unlockPassword"
+                type="password"
+                class="input-field w-full"
+                placeholder="输入密码"
+                @keyup.enter="handleUnlock"
+                autofocus
+              />
+              
+              <div v-if="unlockError" class="flex items-center gap-2 p-3 rounded-xl bg-red-50 mt-3">
+                <X :size="18" class="text-red-500" />
+                <span class="text-red-600 text-sm">{{ unlockError }}</span>
+              </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6 w-full">
+              <button
+                @click="showUnlockModal = false"
+                class="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-medium"
+              >
+                取消
+              </button>
+              <button
+                @click="handleUnlock"
+                class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-all font-medium"
+              >
+                解锁
+              </button>
+            </div>
           </div>
         </div>
       </div>

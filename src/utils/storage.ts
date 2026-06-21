@@ -93,17 +93,23 @@ export function getScheduleSettings(): any {
     if (data) {
       const parsed = JSON.parse(data)
       if (parsed.baseWeekNumber !== undefined) {
-        return parsed
+        return {
+          ...parsed,
+          startTime: parsed.startTime || '08:00',
+          endTime: parsed.endTime || '22:00'
+        }
       }
       return {
         startDate: parsed.startDate || '2026-02-23',
         baseWeekNumber: 1,
-        baseWeekType: (parsed.currentWeekType || 'odd') as 'odd' | 'even'
+        baseWeekType: (parsed.currentWeekType || 'odd') as 'odd' | 'even',
+        startTime: '08:00',
+        endTime: '22:00'
       }
     }
-    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const }
+    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const, startTime: '08:00', endTime: '22:00' }
   } catch {
-    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const }
+    return { startDate: '2026-02-23', baseWeekNumber: 1, baseWeekType: 'odd' as const, startTime: '08:00', endTime: '22:00' }
   }
 }
 

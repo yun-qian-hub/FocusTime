@@ -17,6 +17,7 @@ export interface Todo {
   eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
   subtasks?: TodoSubtask[]
   displayMode?: 'progress' | 'checkbox' | 'none'
+  color?: string
 }
 
 export interface CalendarEvent {
@@ -116,6 +117,8 @@ export interface ScheduleSettings {
   startDate: string
   baseWeekNumber: number
   baseWeekType: 'odd' | 'even'
+  startTime: string
+  endTime: string
 }
 
 export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule'

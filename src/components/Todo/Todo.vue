@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { Plus, Search, X, Trash2, Calendar, AlertCircle, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { useTodoStore } from '@/stores/todo'
 import type { Todo } from '@/types'
+import { scheduleColors, scheduleBorderColors } from '@/utils/colors'
 
 const store = useTodoStore()
 
@@ -19,6 +20,36 @@ const newTodo = ref({
 const newSubtask = ref('')
 const expandedTodos = ref<Set<number>>(new Set())
 const editingSubtask = ref<{ todoId: number; subtaskId: number; value: string } | null>(null)
+
+const priorityTheme = {
+  high: {
+    bg: '#fecaca',
+    border: '#ef4444',
+    gradient: 'from-red-300 to-red-500'
+  },
+  medium: {
+    bg: '#fde68a',
+    border: '#f59e0b',
+    gradient: 'from-amber-300 to-amber-500'
+  },
+  low: {
+    bg: '#bbf7d0',
+    border: '#22c55e',
+    gradient: 'from-emerald-300 to-emerald-500'
+  }
+}
+
+function getTodoColor(todo: Todo): string {
+  return priorityTheme[todo.priority].bg
+}
+
+function getTodoBorderColor(todo: Todo): string {
+  return priorityTheme[todo.priority].border
+}
+
+function getTodoGradient(todo: Todo): string {
+  return priorityTheme[todo.priority].gradient
+}
 const isDragging = ref(false)
 
 const filters = [
@@ -189,23 +220,26 @@ function handleProgressDragEnd(todo: Todo) {
 }
 
 function handleProgressClick(event: MouseEvent, todo: Todo) {
-  if (!todo.subtasks || todo.subtasks.length === 0) return
-  
   const target = event.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
   const x = event.clientX - rect.left
   const percent = Math.round((x / rect.width) * 100)
-  const targetCompleted = Math.round((percent / 100) * todo.subtasks.length)
   
-  todo.subtasks.forEach((subtask, index) => {
-    subtask.completed = index < targetCompleted
-  })
-  
-  const allDone = todo.subtasks.every(s => s.completed)
-  store.updateTodo(todo.id, { 
-    subtasks: [...todo.subtasks],
-    completed: allDone 
-  })
+  if (todo.subtasks && todo.subtasks.length > 0) {
+    const targetCompleted = Math.round((percent / 100) * todo.subtasks.length)
+    todo.subtasks.forEach((subtask, index) => {
+      subtask.completed = index < targetCompleted
+    })
+    const allDone = todo.subtasks.every(s => s.completed)
+    store.updateTodo(todo.id, { 
+      subtasks: [...todo.subtasks],
+      completed: allDone 
+    })
+  } else {
+    store.updateTodo(todo.id, { 
+      completed: percent >= 50 
+    })
+  }
 }
 
 function formatDate(dateStr?: string): string {
@@ -337,20 +371,27 @@ function addSubtask(todoId: number) {
                 </h3>
                 <p v-if="todo.description" class="text-sm text-gray-500 mt-1">{{ todo.description }}</p>
                 
-                <div v-if="todo.displayMode === 'progress'" class="mt-3">
-                  <div class="flex items-center justify-between text-sm mb-1.5">
+                <div v-if="todo.displayMode === 'progress'" class="mt-4">
+                  <div class="flex items-center justify-between text-sm mb-2">
                     <span class="text-gray-500">进度</span>
-                    <span class="font-medium text-primary">
+                    <span 
+                      class="text-sm font-bold px-2 py-1 rounded-lg text-white flex-shrink-0 shadow-sm"
+                      :style="{ backgroundColor: getTodoBorderColor(todo) }"
+                    >
                       {{ getProgress(todo).completed }}/{{ getProgress(todo).total }}
                     </span>
                   </div>
                   <div 
-                    class="h-3 bg-gray-200 rounded-full cursor-pointer relative overflow-hidden"
+                    class="h-7 rounded-xl border-2 bg-gray-100 cursor-pointer relative overflow-hidden"
+                    :style="{ borderColor: getTodoBorderColor(todo) }"
                     @click="handleProgressClick($event, todo)"
                   >
                     <div 
-                      class="h-full rounded-full transition-all duration-200 bg-gradient-to-r from-blue-400 to-blue-500"
-                      :style="{ width: getProgress(todo).percent + '%' }"
+                      class="h-full rounded-xl transition-all duration-200"
+                      :style="{ 
+                        width: getProgress(todo).percent + '%',
+                        backgroundColor: getTodoColor(todo)
+                      }"
                     ></div>
                   </div>
                 </div>

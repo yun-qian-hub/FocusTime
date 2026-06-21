@@ -93,7 +93,7 @@ function parseTime(timeStr: string): number {
 function getCoursePosition(course: ScheduleCourse): { top: string; height: string; left: string } {
   const startMinutes = parseTime(course.startTime)
   const endMinutes = parseTime(course.endTime)
-  const baseMinutes = 7 * 60
+  const baseMinutes = parseTime(store.settings.startTime)
   
   const top = ((startMinutes - baseMinutes) / 60) * (60 * zoom.value)
   const height = ((endMinutes - startMinutes) / 60) * (60 * zoom.value)
@@ -109,7 +109,9 @@ function getCoursePosition(course: ScheduleCourse): { top: string; height: strin
 
 function getHourSlots() {
   const slots = []
-  for (let i = 7; i <= 22; i++) {
+  const startHour = parseInt(store.settings.startTime.split(':')[0])
+  const endHour = parseInt(store.settings.endTime.split(':')[0])
+  for (let i = startHour; i <= endHour; i++) {
     slots.push(`${String(i).padStart(2, '0')}:00`)
   }
   return slots
@@ -256,7 +258,9 @@ const currentDateRange = computed(() => {
 const settingsForm = ref({
   startDate: store.settings.startDate,
   baseWeekNumber: store.settings.baseWeekNumber,
-  baseWeekType: store.settings.baseWeekType
+  baseWeekType: store.settings.baseWeekType,
+  startTime: store.settings.startTime,
+  endTime: store.settings.endTime
 })
 
 function saveSettings() {
@@ -265,7 +269,9 @@ function saveSettings() {
 }
 
 const totalHeight = computed(() => {
-  return (22 - 7) * 60 * zoom.value + 40
+  const startHour = parseInt(store.settings.startTime.split(':')[0])
+  const endHour = parseInt(store.settings.endTime.split(':')[0])
+  return (endHour - startHour) * 60 * zoom.value + 40
 })
 
 const allOverrides = computed(() => {
@@ -530,7 +536,7 @@ function handleContextMenuDelete() {
                   :key="removed.id"
                   class="absolute rounded-lg border-2 border-dashed border-gray-300 bg-gray-50/50 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-all"
                   :style="{
-                    top: `${((parseTime(removed.startTime || '08:00') - 7 * 60) / 60) * (60 * zoom)}px`,
+                    top: `${((parseTime(removed.startTime || '08:00') - parseTime(store.settings.startTime)) / 60) * (60 * zoom)}px`,
                     height: `${((parseTime(removed.endTime || '09:00') - parseTime(removed.startTime || '08:00')) / 60) * (60 * zoom)}px`,
                     left: `${dayIndex * (100 / 7)}px`,
                     width: `${100 / 7}%`
@@ -660,8 +666,8 @@ function handleContextMenuDelete() {
                 <input
                   v-model="formData.startTime"
                   type="time"
-                  min="07:00"
-                  max="22:00"
+                  :min="store.settings.startTime"
+                  :max="store.settings.endTime"
                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 />
               </div>
@@ -670,8 +676,8 @@ function handleContextMenuDelete() {
                 <input
                   v-model="formData.endTime"
                   type="time"
-                  min="07:00"
-                  max="22:00"
+                  :min="store.settings.startTime"
+                  :max="store.settings.endTime"
                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 />
               </div>
@@ -790,8 +796,8 @@ function handleContextMenuDelete() {
                 <input
                   v-model="tempFormData.startTime"
                   type="time"
-                  min="07:00"
-                  max="22:00"
+                  :min="store.settings.startTime"
+                  :max="store.settings.endTime"
                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 />
               </div>
@@ -800,8 +806,8 @@ function handleContextMenuDelete() {
                 <input
                   v-model="tempFormData.endTime"
                   type="time"
-                  min="07:00"
-                  max="22:00"
+                  :min="store.settings.startTime"
+                  :max="store.settings.endTime"
                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                 />
               </div>
@@ -890,26 +896,49 @@ function handleContextMenuDelete() {
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">基准周类型</label>
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  @click="settingsForm.baseWeekType = 'odd'"
-                  class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
-                  :class="settingsForm.baseWeekType === 'odd' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                >
-                  单周
-                </button>
-                <button
-                  @click="settingsForm.baseWeekType = 'even'"
-                  class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
-                  :class="settingsForm.baseWeekType === 'even' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                >
-                  双周
-                </button>
+                <label class="block text-sm font-medium text-gray-700 mb-2">基准周类型</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    @click="settingsForm.baseWeekType = 'odd'"
+                    class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                    :class="settingsForm.baseWeekType === 'odd' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                  >
+                    单周
+                  </button>
+                  <button
+                    @click="settingsForm.baseWeekType = 'even'"
+                    class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                    :class="settingsForm.baseWeekType === 'even' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                  >
+                    双周
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <div class="p-4 bg-blue-50 rounded-xl">
+              
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">每日开始时间</label>
+                  <input
+                    v-model="settingsForm.startTime"
+                    type="time"
+                    min="00:00"
+                    max="23:00"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">每日结束时间</label>
+                  <input
+                    v-model="settingsForm.endTime"
+                    type="time"
+                    min="00:00"
+                    max="23:00"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                  />
+                </div>
+              </div>
+              
+              <div class="p-4 bg-blue-50 rounded-xl">
               <p class="text-sm text-blue-700">
                 当前为第 {{ store.currentWeekNumber }} 周（{{ store.currentWeekType === 'odd' ? '单周' : '双周' }}），根据基准周计算结果
               </p>

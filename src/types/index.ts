@@ -121,4 +121,26 @@ export interface ScheduleSettings {
   endTime: string
 }
 
-export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule'
+export interface PomodoroSession {
+  id: number
+  date: string
+  focusTime: number
+  shortBreak: number
+  longBreak: number
+  cycles: number
+  completedCycles: number
+  status: 'focus' | 'shortBreak' | 'longBreak' | 'idle'
+  createdAt: string
+}
+
+export interface PomodoroSettings {
+  focusTime: number
+  shortBreak: number
+  longBreak: number
+  cyclesBeforeLongBreak: number
+  autoStartBreak: boolean
+  autoStartFocus: boolean
+  soundEnabled: boolean
+}
+
+export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule' | 'pomodoro'

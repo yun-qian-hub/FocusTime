@@ -9,6 +9,7 @@ import Important from '@/components/Important/Important.vue'
 import Period from '@/components/Period/Period.vue'
 import Schedule from '@/components/Schedule/Schedule.vue'
 import DataManager from '@/components/DataManager/DataManager.vue'
+import Pomodoro from '@/components/Pomodoro/Pomodoro.vue'
 import type { TabType } from '@/types'
 
 const activeTab = ref<TabType>('calendar')
@@ -31,6 +32,7 @@ function handleTabChange(tab: TabType) {
         <Important v-else-if="activeTab === 'important'" key="important" />
         <Period v-else-if="activeTab === 'period'" key="period" />
         <Schedule v-else-if="activeTab === 'schedule'" key="schedule" />
+        <Pomodoro v-else-if="activeTab === 'pomodoro'" key="pomodoro" />
         <DataManager v-else-if="activeTab === 'datamanager'" key="datamanager" />
       </Transition>
     </main>

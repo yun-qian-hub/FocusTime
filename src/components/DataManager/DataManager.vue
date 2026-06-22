@@ -9,6 +9,7 @@ import { useImportantStore } from '@/stores/important'
 import { usePeriodStore } from '@/stores/period'
 import { useScheduleStore } from '@/stores/schedule'
 import { useSecureNotesStore } from '@/stores/secureNotes'
+import { usePomodoroStore } from '@/stores/pomodoro'
 import { encryptData, decryptData } from '@/utils/crypto'
 
 const todoStore = useTodoStore()
@@ -19,6 +20,7 @@ const importantStore = useImportantStore()
 const periodStore = usePeriodStore()
 const scheduleStore = useScheduleStore()
 const secureNotesStore = useSecureNotesStore()
+const pomodoroStore = usePomodoroStore()
 
 const showResetConfirm = ref(false)
 const resetCountdown = ref(3)
@@ -67,7 +69,9 @@ async function exportData() {
     importantEvents: importantStore.events,
     periodEvents: periodStore.periodEvents,
     scheduleCourses: scheduleStore.courses,
-    scheduleOverrides: scheduleStore.overrides
+    scheduleOverrides: scheduleStore.overrides,
+    pomodoroSettings: pomodoroStore.settings,
+    pomodoroSessions: pomodoroStore.sessions
   }
 
   let exportData: ExportData = {
@@ -155,6 +159,7 @@ function confirmReset() {
   periodStore.periodEvents = []
   scheduleStore.courses = []
   secureNotesStore.notes = []
+  pomodoroStore.sessions = []
 
   localStorage.removeItem('task_manager_todos')
   localStorage.removeItem('task_manager_events')
@@ -167,6 +172,9 @@ function confirmReset() {
   localStorage.removeItem('task_manager_schedule_settings')
   localStorage.removeItem('task_manager_schedule_overrides')
   localStorage.removeItem('task_manager_calendar_colors')
+  localStorage.removeItem('task_manager_pomodoro_settings')
+  localStorage.removeItem('task_manager_pomodoro_sessions')
+  localStorage.removeItem('task_manager_pomodoro_timer_state')
 
   showResetConfirm.value = false
   resetConfirmEnabled.value = false
@@ -274,6 +282,12 @@ async function importData() {
       if (importData.scheduleOverrides) {
         localStorage.setItem('task_manager_schedule_overrides', JSON.stringify(importData.scheduleOverrides))
       }
+      if (importData.pomodoroSettings) {
+        localStorage.setItem('task_manager_pomodoro_settings', JSON.stringify(importData.pomodoroSettings))
+      }
+      if (importData.pomodoroSessions) {
+        localStorage.setItem('task_manager_pomodoro_sessions', JSON.stringify(importData.pomodoroSessions))
+      }
 
       importMessage.value = '数据导入成功！页面将刷新'
       importSuccess.value = true
@@ -314,7 +328,8 @@ const stats = {
   alarms: alarmStore.alarms.length,
   importantEvents: importantStore.events.length,
   periodEvents: periodStore.periodEvents.length,
-  scheduleCourses: scheduleStore.courses.length
+  scheduleCourses: scheduleStore.courses.length,
+  pomodoroSessions: pomodoroStore.sessions.length
 }
 </script>
 
@@ -325,7 +340,7 @@ const stats = {
       <p class="text-gray-500 mt-1">管理您的所有数据，支持导出、导入和重置</p>
     </header>
     
-    <div class="grid grid-cols-8 gap-4">
+    <div class="grid grid-cols-9 gap-4">
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-primary">{{ stats.todos }}</span>
         <span class="text-sm text-gray-500">待办事项</span>
@@ -357,6 +372,10 @@ const stats = {
       <div class="glass-card p-4 flex flex-col items-center justify-center">
         <span class="text-2xl font-bold text-teal-500">{{ stats.scheduleCourses }}</span>
         <span class="text-sm text-gray-500">课程</span>
+      </div>
+      <div class="glass-card p-4 flex flex-col items-center justify-center">
+        <span class="text-2xl font-bold text-red-500">{{ stats.pomodoroSessions }}</span>
+        <span class="text-sm text-gray-500">番茄钟</span>
       </div>
     </div>
     

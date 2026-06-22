@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
   PERIOD_EVENTS: 'task_manager_period_events',
   SCHEDULE_COURSES: 'task_manager_schedule_courses',
   SCHEDULE_SETTINGS: 'task_manager_schedule_settings',
-  SCHEDULE_OVERRIDES: 'task_manager_schedule_overrides'
+  SCHEDULE_OVERRIDES: 'task_manager_schedule_overrides',
+  SCHEDULE_ZOOM: 'task_manager_schedule_zoom'
 }
 
 export function getTodos(): any[] {
@@ -128,4 +129,17 @@ export function getScheduleOverrides(): any[] {
 
 export function saveScheduleOverrides(overrides: any[]): void {
   localStorage.setItem(STORAGE_KEYS.SCHEDULE_OVERRIDES, JSON.stringify(overrides))
+}
+
+export function getScheduleZoom(): number {
+  try {
+    const data = localStorage.getItem(STORAGE_KEYS.SCHEDULE_ZOOM)
+    return data ? parseFloat(data) : 0.8
+  } catch {
+    return 0.8
+  }
+}
+
+export function saveScheduleZoom(zoom: number): void {
+  localStorage.setItem(STORAGE_KEYS.SCHEDULE_ZOOM, zoom.toString())
 }

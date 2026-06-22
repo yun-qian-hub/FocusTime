@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Plus, ChevronLeft, ChevronRight, BookOpen, Clock, MapPin, User, Edit2, Trash2, X, RotateCcw, Settings, ZoomIn, ZoomOut, AlertCircle, Undo2, FileText } from 'lucide-vue-next'
+import { Plus, ChevronLeft, ChevronRight, BookOpen, Clock, MapPin, User, Edit2, Trash2, X, RotateCcw, Settings, ZoomOut, AlertCircle, Undo2, FileText } from 'lucide-vue-next'
 import { useScheduleStore } from '@/stores/schedule'
 import type { ScheduleCourse } from '@/types'
 import { scheduleColors } from '@/utils/colors'
+import { getScheduleZoom, saveScheduleZoom } from '@/utils/storage'
 
 const store = useScheduleStore()
 
-const zoom = ref(0.8)
+const zoom = ref(getScheduleZoom())
+
+watch(zoom, (newZoom) => {
+  saveScheduleZoom(newZoom)
+})
 const showForm = ref(false)
 const editingCourse = ref<ScheduleCourse | null>(null)
 const selectedCourse = ref<(ScheduleCourse & { isTemporary?: boolean; overrideId?: number }) | null>(null)
@@ -182,16 +187,12 @@ function goToToday() {
   store.resetWeekToToday()
 }
 
-function zoomIn() {
-  if (zoom.value < 2) zoom.value += 0.1
-}
-
 function zoomOut() {
-  if (zoom.value > 0.5) zoom.value -= 0.1
+  if (zoom.value > 0.3) zoom.value -= 0.1
 }
 
 function resetZoom() {
-  zoom.value = 1
+  zoom.value = 0.8
 }
 
 function openForm(course?: ScheduleCourse) {
@@ -495,22 +496,16 @@ function handleContextMenuDelete() {
             <input
               type="range"
               v-model="zoom"
-              min="0.5"
-              max="2"
-              step="0.1"
+              min="0.3"
+              max="1"
+              step="0.05"
               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <div
               class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow transition-all"
-              :style="{ left: `${((zoom - 0.5) / 1.5) * 100}%` }"
+              :style="{ left: `${((zoom - 0.3) / 0.7) * 100}%` }"
             />
           </div>
-          <button
-            @click="zoomIn"
-            class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <ZoomIn :size="18" class="text-gray-600" />
-          </button>
           <span class="text-sm text-gray-600 w-16">{{ Math.round(zoom * 100) }}%</span>
           <button
             @click="resetZoom"

@@ -333,7 +333,7 @@ function addSubtask(todoId: number) {
         </button>
       </div>
       
-      <div v-else class="overflow-y-auto space-y-3" style="max-height: calc(100vh - 380px);">
+      <div v-else class="overflow-y-auto space-y-2" style="max-height: calc(100vh - 380px);">
         <div
           v-for="todo in store.displayedTodos"
           :key="todo.id"
@@ -344,156 +344,189 @@ function addSubtask(todoId: number) {
               : priorityBgColors[todo.priority]
           ]"
         >
-          <div
-            class="p-4"
-          >
-            <div class="flex items-start gap-3">
-              <div
-                class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer"
-                :class="[
-                  todo.completed 
-                    ? 'bg-emerald-500 border-emerald-500' 
-                    : priorityColors[todo.priority] + ' border-transparent'
-                ]"
-                @click="store.toggleTodo(todo.id)"
-              >
-                <svg v-if="todo.completed" :width="14" :height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              
-              <div class="flex-1 min-w-0">
-                <h3 
-                  class="font-medium text-gray-800"
-                  :class="[todo.completed ? 'line-through' : '']"
-                >
-                  {{ todo.title }}
-                </h3>
-                <p v-if="todo.description" class="text-sm text-gray-500 mt-1">{{ todo.description }}</p>
-                
-                <div v-if="todo.displayMode === 'progress'" class="mt-4">
-                  <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-500">进度</span>
-                    <span 
-                      class="text-sm font-bold px-2 py-1 rounded-lg text-white flex-shrink-0 shadow-sm"
-                      :style="{ backgroundColor: getTodoBorderColor(todo) }"
-                    >
-                      {{ getProgress(todo).completed }}/{{ getProgress(todo).total }}
-                    </span>
-                  </div>
-                  <div 
-                    class="h-7 rounded-xl border-2 bg-gray-100 cursor-pointer relative overflow-hidden"
-                    :style="{ borderColor: getTodoBorderColor(todo) }"
-                    @click="handleProgressClick($event, todo)"
+          <div class="p-3 flex items-center gap-3">
+            <div
+              class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer"
+              :class="[
+                todo.completed 
+                  ? 'bg-emerald-500 border-emerald-500' 
+                  : priorityColors[todo.priority] + ' border-transparent'
+              ]"
+              @click.stop="store.toggleTodo(todo.id)"
+            >
+              <svg v-if="todo.completed" :width="12" :height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <div 
+              class="flex-1 relative h-10 rounded-lg border-2 bg-gray-100 overflow-hidden cursor-pointer"
+              :style="{ borderColor: getTodoBorderColor(todo) }"
+              @click="todo.displayMode === 'progress' ? handleProgressClick($event, todo) : () => {}"
+            >
+              <div 
+                v-if="todo.displayMode === 'progress'"
+                class="absolute inset-0 transition-all duration-200"
+                :style="{ 
+                  width: getProgress(todo).percent + '%',
+                  backgroundColor: getTodoColor(todo)
+                }"
+              ></div>
+              <div class="relative h-full flex items-center px-3 justify-between">
+                <div class="flex items-center gap-2">
+                  <h3 
+                    class="font-medium text-gray-800 text-sm truncate"
+                    :class="[todo.completed ? 'line-through' : '']"
                   >
-                    <div 
-                      class="h-full rounded-xl transition-all duration-200"
-                      :style="{ 
-                        width: getProgress(todo).percent + '%',
-                        backgroundColor: getTodoColor(todo)
-                      }"
-                    ></div>
-                  </div>
-                </div>
-                
-                <div v-if="todo.displayMode === 'checkbox'" class="mt-3 space-y-2">
-                  <div v-if="!todo.subtasks || todo.subtasks.length === 0" class="text-sm text-gray-400 p-2 bg-white/30 rounded-lg">
-                    暂无子任务，请点击下方按钮添加
-                  </div>
-                  <div
-                    v-for="subtask in todo.subtasks"
-                    :key="subtask.id"
-                    class="flex items-center gap-2 p-2 rounded-lg bg-white/50 hover:bg-white/70 transition-colors"
+                    {{ todo.title }}
+                  </h3>
+                  <span 
+                    v-if="todo.displayMode === 'progress'"
+                    class="text-xs font-bold px-2 py-0.5 rounded text-white flex-shrink-0 shadow-sm"
+                    :style="{ backgroundColor: getTodoBorderColor(todo) }"
                   >
-                    <div
-                      class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer"
-                      :class="[
-                        subtask.completed 
-                          ? 'bg-emerald-500 border-emerald-500' 
-                          : 'border-gray-300 hover:border-emerald-400'
-                      ]"
-                      @click="store.toggleSubtask(todo.id, subtask.id)"
-                    >
-                      <svg v-if="subtask.completed" :width="12" :height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <template v-if="editingSubtask?.todoId === todo.id && editingSubtask?.subtaskId === subtask.id">
-                      <input
-                        v-model="editingSubtask.value"
-                        type="text"
-                        class="flex-1 px-2 py-1 text-sm border border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
-                        @keyup.enter="saveEditSubtask"
-                        @keyup.esc="cancelEditSubtask"
-                        @blur="saveEditSubtask"
-                        ref="(el: any) => el && el.focus()"
-                      />
-                    </template>
-                    <span 
-                      v-else
-                      class="text-sm flex-1 cursor-pointer hover:bg-white/50 rounded px-1 py-0.5"
-                      :class="[subtask.completed ? 'text-gray-400 line-through' : 'text-gray-700']"
-                      @click="startEditSubtask(todo.id, subtask.id, subtask.title)"
-                    >
-                      {{ subtask.title }}
-                    </span>
-                    <button
-                      @click.stop="store.removeSubtask(todo.id, subtask.id)"
-                      class="w-6 h-6 rounded-lg hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X :size="12" class="text-red-500" />
-                    </button>
-                  </div>
-                  <div class="flex items-center gap-2 mt-2">
-                    <input
-                      v-model="newSubtask"
-                      type="text"
-                      class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white/70"
-                      placeholder="添加子任务..."
-                      @keyup.enter="addSubtask(todo.id)"
-                    />
-                    <button
-                      @click="addSubtask(todo.id)"
-                      class="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center"
-                    >
-                      <Plus :size="14" class="text-primary" />
-                    </button>
-                  </div>
+                    {{ getProgress(todo).completed }}/{{ getProgress(todo).total }}
+                  </span>
+                  <span 
+                    v-if="todo.displayMode === 'checkbox'"
+                    class="text-xs font-bold px-2 py-0.5 rounded text-white flex-shrink-0 shadow-sm"
+                    :style="{ backgroundColor: getTodoBorderColor(todo) }"
+                  >
+                    {{ todo.subtasks?.filter(s => s.completed).length || 0 }}/{{ todo.subtasks?.length || 0 }}
+                  </span>
                 </div>
-                
-                <div class="flex items-center gap-3 mt-2">
+                <div class="flex items-center gap-1 flex-shrink-0">
                   <span 
                     class="px-2 py-0.5 rounded-full text-xs font-medium"
                     :class="[todo.completed ? 'bg-gray-200 text-gray-600' : priorityBgColors[todo.priority] + ' ' + priorityTextColors[todo.priority]]"
                   >
-                    {{ priorityLabels[todo.priority] }}优先级
+                    {{ priorityLabels[todo.priority] }}
                   </span>
-                  
-                  <span v-if="todo.dueDate" class="flex items-center gap-1 text-sm text-gray-500">
-                    <Calendar :size="14" />
+                  <span v-if="todo.dueDate" class="flex items-center gap-1 text-xs text-gray-500">
+                    <Calendar :size="12" />
                     <span :class="[isOverdue(todo.dueDate) && !todo.completed ? 'text-red-500' : '']">
                       {{ formatDate(todo.dueDate) }}
                     </span>
                   </span>
-                  
-
                 </div>
               </div>
-              
-              <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  @click.stop="openAddModal(todo)"
-                  class="w-8 h-8 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center"
+            </div>
+            
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button
+                v-if="todo.displayMode === 'checkbox'"
+                @click.stop="toggleExpand(todo.id)"
+                class="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center"
+              >
+                <ChevronDown 
+                  v-if="expandedTodos.has(todo.id)" 
+                  :size="14" 
+                  class="text-gray-500" 
+                />
+                <ChevronRight 
+                  v-else 
+                  :size="14" 
+                  class="text-gray-500" 
+                />
+              </button>
+              <button
+                @click.stop="openAddModal(todo)"
+                class="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <svg :width="14" :height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                @click.stop="deleteTodo(todo.id)"
+                class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 :size="14" class="text-red-500" />
+              </button>
+            </div>
+          </div>
+          
+          <div 
+            v-if="todo.displayMode === 'checkbox' && expandedTodos.has(todo.id)"
+            class="px-3 pb-3"
+          >
+            <div class="ml-8 space-y-2">
+              <div 
+                v-if="!todo.subtasks || todo.subtasks.length === 0" 
+                class="text-xs text-gray-400 p-3 bg-white/30 rounded-lg border border-dashed border-gray-200 text-center"
+              >
+                暂无子任务，请点击下方按钮添加
+              </div>
+              <div
+                v-for="subtask in todo.subtasks"
+                :key="subtask.id"
+                class="flex items-center gap-3 p-2.5 rounded-lg bg-white/60 hover:bg-white/80 transition-all duration-200 group"
+              >
+                <div
+                  class="w-4 h-4 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer"
+                  :class="[
+                    subtask.completed 
+                      ? 'bg-emerald-500 border-emerald-500' 
+                      : 'border-gray-300 hover:border-emerald-400 hover:bg-emerald-50'
+                  ]"
+                  @click="store.toggleSubtask(todo.id, subtask.id)"
                 >
-                  <svg :width="16" :height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <svg 
+                    v-if="subtask.completed" 
+                    :width="10" 
+                    :height="10" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="white" 
+                    stroke-width="3"
+                    class="transition-transform duration-200"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                </button>
-                <button
-                  @click.stop="deleteTodo(todo.id)"
-                  class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                </div>
+                <template v-if="editingSubtask?.todoId === todo.id && editingSubtask?.subtaskId === subtask.id">
+                  <input
+                    v-model="editingSubtask.value"
+                    type="text"
+                    class="flex-1 px-3 py-1.5 text-xs border-2 border-primary/40 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white shadow-sm"
+                    @keyup.enter="saveEditSubtask"
+                    @keyup.esc="cancelEditSubtask"
+                    @blur="saveEditSubtask"
+                    ref="(el: any) => el && el.focus()"
+                  />
+                </template>
+                <span 
+                  v-else
+                  class="text-xs flex-1 cursor-pointer rounded px-2 py-1 transition-all"
+                  :class="[
+                    subtask.completed 
+                      ? 'text-gray-400 line-through' 
+                      : 'text-gray-700 hover:bg-white/60'
+                  ]"
+                  @click="startEditSubtask(todo.id, subtask.id, subtask.title)"
                 >
-                  <Trash2 :size="16" class="text-red-500" />
+                  {{ subtask.title }}
+                </span>
+                <button
+                  @click.stop="store.removeSubtask(todo.id, subtask.id)"
+                  class="w-6 h-6 rounded-lg hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <X :size="12" class="text-red-500" />
+                </button>
+              </div>
+              <div class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                <input
+                  v-model="newSubtask"
+                  type="text"
+                  class="flex-1 px-3 py-2 text-xs border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 bg-white/80 placeholder-gray-400 transition-all"
+                  placeholder="添加子任务..."
+                  @keyup.enter="addSubtask(todo.id)"
+                />
+                <button
+                  @click="addSubtask(todo.id)"
+                  class="w-8 h-8 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all hover:scale-105"
+                >
+                  <Plus :size="14" class="text-primary" />
                 </button>
               </div>
             </div>

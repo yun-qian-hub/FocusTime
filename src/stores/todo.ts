@@ -38,7 +38,12 @@ export const useTodoStore = defineStore('todo', () => {
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
         return priorityOrder[a.priority] - priorityOrder[b.priority]
       }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      }
+      if (a.dueDate) return -1
+      if (b.dueDate) return 1
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     })
   })
   

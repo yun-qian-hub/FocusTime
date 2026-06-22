@@ -2,12 +2,12 @@
 import { ref, computed, watch } from 'vue'
 import { Plus, ChevronLeft, ChevronRight, BookOpen, Clock, MapPin, User, Edit2, Trash2, X, RotateCcw, Settings, ZoomIn, ZoomOut, AlertCircle, Undo2, FileText } from 'lucide-vue-next'
 import { useScheduleStore } from '@/stores/schedule'
-import type { ScheduleCourse, ScheduleOverride } from '@/types'
-import { scheduleColors, scheduleBorderColors } from '@/utils/colors'
+import type { ScheduleCourse } from '@/types'
+import { scheduleColors } from '@/utils/colors'
 
 const store = useScheduleStore()
 
-const zoom = ref(1)
+const zoom = ref(0.8)
 const showForm = ref(false)
 const editingCourse = ref<ScheduleCourse | null>(null)
 const selectedCourse = ref<(ScheduleCourse & { isTemporary?: boolean; overrideId?: number }) | null>(null)
@@ -15,16 +15,31 @@ const showSettings = ref(false)
 const showAddTemporaryForm = ref(false)
 const selectedCell = ref<{ dayOfWeek: number; startTime: string; endTime: string } | null>(null)
 
+const periodPresets = [
+  { label: '1-2节 (早八)', start: '08:00', end: '09:40', periods: '1-2' },
+  { label: '3-4节 (早十)', start: '10:00', end: '11:40', periods: '3-4' },
+  { label: '3-5节 (长节)', start: '10:00', end: '12:30', periods: '3-5' },
+  { label: '6-8节 (长课)', start: '14:05', end: '16:40', periods: '6-8' },
+  { label: '7-8节 (下午)', start: '15:00', end: '16:40', periods: '7-8' },
+  { label: '9-10节 (下午)', start: '17:00', end: '18:40', periods: '9-10' },
+  { label: '11-12节 (晚课)', start: '19:10', end: '20:40', periods: '11-12' },
+  { label: '11-13节 (长晚课)', start: '19:10', end: '21:30', periods: '11-13' },
+]
+
+interface DaySchedule {
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+}
+
 const formData = ref({
   title: '',
   teacher: '',
   classroom: '',
-  dayOfWeek: 1,
-  startTime: '08:00',
-  endTime: '09:00',
   weekType: 'all' as 'all' | 'odd' | 'even',
   color: '',
-  remark: ''
+  remark: '',
+  schedules: [] as DaySchedule[]
 })
 
 const weekTypeOptions = [
@@ -33,31 +48,69 @@ const weekTypeOptions = [
   { value: 'even', label: '双周' }
 ]
 
+function addSchedule() {
+  const newDay = formData.value.schedules.length > 0 
+    ? ((formData.value.schedules[formData.value.schedules.length - 1].dayOfWeek % 7) + 1)
+    : 1
+  formData.value.schedules.push({
+    dayOfWeek: newDay,
+    startTime: '08:00',
+    endTime: '09:40'
+  })
+}
+
+function removeSchedule(index: number) {
+  formData.value.schedules.splice(index, 1)
+}
+
+function applyPeriodPreset(index: number, preset: typeof periodPresets[0]) {
+  formData.value.schedules[index].startTime = preset.start
+  formData.value.schedules[index].endTime = preset.end
+}
+
 watch(editingCourse, (course) => {
   if (course) {
+    const relatedCourses = store.courses.filter(
+      c => c.title === course.title && 
+           c.teacher === course.teacher && 
+           c.weekType === course.weekType &&
+           c.color === course.color
+    )
     formData.value = {
       title: course.title,
       teacher: course.teacher || '',
       classroom: course.classroom || '',
-      dayOfWeek: course.dayOfWeek,
-      startTime: course.startTime,
-      endTime: course.endTime,
       weekType: course.weekType,
       color: course.color,
-      remark: course.remark || ''
+      remark: course.remark || '',
+      schedules: relatedCourses.map(c => ({
+        dayOfWeek: c.dayOfWeek,
+        startTime: c.startTime,
+        endTime: c.endTime
+      }))
     }
   } else {
     formData.value = {
       title: '',
       teacher: '',
       classroom: '',
-      dayOfWeek: 1,
-      startTime: '08:00',
-      endTime: '09:00',
       weekType: 'all',
-      color: store.getNextColor(),
-      remark: ''
+      color: '',
+      remark: '',
+      schedules: [{
+        dayOfWeek: 1,
+        startTime: '08:00',
+        endTime: '09:40'
+      }]
     }
+  }
+})
+
+watch(() => formData.value.title, (newTitle) => {
+  if (newTitle.trim() && !editingCourse.value) {
+    formData.value.color = store.getColorByTitle(newTitle)
+  } else if (!newTitle.trim() && !editingCourse.value) {
+    formData.value.color = ''
   }
 })
 
@@ -154,22 +207,44 @@ function closeForm() {
 function handleSave() {
   if (!formData.value.title.trim()) return
   
-  const courseData: Omit<ScheduleCourse, 'id' | 'createdAt'> = {
+  const baseCourseData = {
     title: formData.value.title.trim(),
     teacher: formData.value.teacher.trim() || undefined,
     classroom: formData.value.classroom.trim() || undefined,
-    dayOfWeek: formData.value.dayOfWeek,
-    startTime: formData.value.startTime,
-    endTime: formData.value.endTime,
     weekType: formData.value.weekType,
     color: formData.value.color,
     remark: formData.value.remark.trim() || undefined
   }
   
-  if (editingCourse.value) {
-    store.updateCourse(editingCourse.value.id, courseData)
+  if (editingCourse.value && formData.value.schedules.length > 0) {
+    const relatedCourseIds = store.courses.filter(
+      c => c.title === editingCourse.value!.title && 
+           c.teacher === editingCourse.value!.teacher && 
+           c.weekType === editingCourse.value!.weekType &&
+           c.color === editingCourse.value!.color
+    ).map(c => c.id)
+    for (const id of relatedCourseIds) {
+      store.deleteCourse(id)
+    }
+    for (const schedule of formData.value.schedules) {
+      const courseData: Omit<ScheduleCourse, 'id' | 'createdAt'> = {
+        ...baseCourseData,
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime
+      }
+      store.addCourse(courseData)
+    }
   } else {
-    store.addCourse(courseData)
+    for (const schedule of formData.value.schedules) {
+      const courseData: Omit<ScheduleCourse, 'id' | 'createdAt'> = {
+        ...baseCourseData,
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime
+      }
+      store.addCourse(courseData)
+    }
   }
   
   closeForm()
@@ -279,11 +354,25 @@ const allOverrides = computed(() => {
     const date = new Date(o.date)
     const now = new Date()
     const monday = new Date(now)
-    monday.setDate(now.getDate() - now.getDay() + 1 + store.currentWeekOffset.value * 7)
+    monday.setDate(now.getDate() - now.getDay() + 1 + store.currentWeekOffset * 7)
     const sunday = new Date(monday)
     sunday.setDate(monday.getDate() + 6)
     return date >= monday && date <= sunday
   })
+})
+
+const todayCourses = computed(() => {
+  const today = new Date()
+  const dayOfWeek = today.getDay() === 0 ? 7 : today.getDay()
+  return store.getCoursesForDay(dayOfWeek).filter(c => !c.isTemporary).sort((a, b) => a.startTime.localeCompare(b.startTime))
+})
+
+const weeklyCourseCount = computed(() => {
+  let count = 0
+  for (let day = 1; day <= 7; day++) {
+    count += store.getCoursesForDay(day).filter(c => !c.isTemporary).length
+  }
+  return count
 })
 
 const contextMenu = ref({
@@ -305,12 +394,6 @@ function showContextMenu(event: MouseEvent, course: ScheduleCourse & { isTempora
 
 function hideContextMenu() {
   contextMenu.value.show = false
-}
-
-function handleGlobalClick(event: MouseEvent) {
-  if (contextMenu.value.show) {
-    hideContextMenu()
-  }
 }
 
 function handleContextMenuDetail() {
@@ -440,7 +523,7 @@ function handleContextMenuDelete() {
     </header>
     
     <div class="flex-1 flex overflow-hidden">
-      <div class="flex-1 overflow-auto">
+      <div class="flex-[3] overflow-auto">
         <div class="relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden m-6">
           <div class="absolute left-0 top-0 bottom-0 w-[60px] bg-gray-50 border-r border-gray-200 flex flex-col flex-shrink-0 z-10">
             <div class="h-[40px] flex items-center justify-center border-b border-gray-200">
@@ -470,7 +553,7 @@ function handleContextMenuDelete() {
             
             <div class="relative" :style="{ height: `${totalHeight - 40}px` }" @click="hideContextMenu">
               <div
-                v-for="(day, dayIndex) in store.weekDays"
+                v-for="(_day, dayIndex) in store.weekDays"
                 :key="dayIndex"
                 class="absolute top-0 bottom-0 border-r border-gray-100 last:border-r-0"
                 :style="{ left: `${(dayIndex) * (100 / 7)}%`, width: `${100 / 7}%` }"
@@ -484,7 +567,7 @@ function handleContextMenuDelete() {
               />
               
               <div
-                v-for="(day, dayIndex) in store.weekDays"
+                v-for="(_day, dayIndex) in store.weekDays"
                 :key="'cell-' + dayIndex"
                 class="absolute top-0 bottom-0"
                 :style="{ left: `${dayIndex * (100 / 7)}%`, width: `${100 / 7}%` }"
@@ -499,7 +582,7 @@ function handleContextMenuDelete() {
               </div>
               
               <div
-                v-for="(day, dayIndex) in store.weekDays"
+                v-for="(_day, dayIndex) in store.weekDays"
                 :key="'courses-' + dayIndex"
               >
                 <div
@@ -528,7 +611,7 @@ function handleContextMenuDelete() {
               </div>
               
               <div
-                v-for="(day, dayIndex) in store.weekDays"
+                v-for="(_day, dayIndex) in store.weekDays"
                 :key="'removed-' + dayIndex"
               >
                 <div
@@ -594,6 +677,101 @@ function handleContextMenuDelete() {
           </div>
         </div>
       </div>
+      
+      <div class="flex-[1] border-l border-gray-200 bg-gray-50 overflow-auto p-4">
+        <div class="space-y-4">
+          <div class="bg-white rounded-xl p-4 shadow-sm">
+            <h3 class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <BookOpen :size="16" />
+              今日课程
+            </h3>
+            <div v-if="todayCourses.length > 0" class="space-y-2">
+              <div
+                v-for="course in todayCourses"
+                :key="course.id"
+                class="p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                :style="{ backgroundColor: course.color + '40' }"
+                @click="selectedCourse = course"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-bold text-gray-800">{{ course.title }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" :class="{
+                    'bg-blue-100 text-blue-600': course.weekType === 'all',
+                    'bg-purple-100 text-purple-600': course.weekType === 'odd',
+                    'bg-pink-100 text-pink-600': course.weekType === 'even'
+                  }">
+                    {{ getWeekTypeLabel(course.weekType) }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-600">
+                  <Clock :size="12" />
+                  {{ course.startTime }} - {{ course.endTime }}
+                  <MapPin v-if="course.classroom" :size="12" />
+                  <span v-if="course.classroom">{{ course.classroom }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 text-center py-4">
+              今天没有课程
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl p-4 shadow-sm">
+            <h3 class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <FileText :size="16" />
+              课程统计
+            </h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">本周课程</span>
+                <span class="text-sm font-bold text-gray-800">{{ weeklyCourseCount }} 节</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">总课程数</span>
+                <span class="text-sm font-bold text-gray-800">{{ store.courses.length }} 门</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">临时调整</span>
+                <span class="text-sm font-bold text-gray-800">{{ allOverrides.length }} 项</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white rounded-xl p-4 shadow-sm">
+            <h3 class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <AlertCircle :size="16" />
+              本周调整
+            </h3>
+            <div v-if="allOverrides.length > 0" class="space-y-2">
+              <div
+                v-for="override in allOverrides"
+                :key="override.id"
+                class="p-2 rounded-lg text-xs"
+                :class="{
+                  'bg-red-50': override.action === 'remove',
+                  'bg-green-50': override.action === 'add',
+                  'bg-yellow-50': override.action === 'modify'
+                }"
+              >
+                <div class="flex items-center gap-1 mb-1">
+                  <span :class="{
+                    'text-red-600': override.action === 'remove',
+                    'text-green-600': override.action === 'add',
+                    'text-yellow-600': override.action === 'modify'
+                  }">
+                    {{ override.action === 'remove' ? '已取消' : override.action === 'add' ? '临时添加' : '已修改' }}
+                  </span>
+                  <span class="text-gray-500">{{ override.date }}</span>
+                </div>
+                <span class="text-gray-700">{{ override.title || '课程调整' }}</span>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 text-center py-2">
+              暂无调整
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <Teleport to="body">
@@ -602,8 +780,8 @@ function handleContextMenuDelete() {
         class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         @click.self="closeForm"
       >
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
-          <div class="flex items-center justify-between mb-6">
+        <div class="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6">
+          <div class="flex items-center justify-between mb-6 sticky top-0 bg-white z-10">
             <h2 class="text-xl font-bold text-gray-800">{{ editingCourse ? '编辑课程' : '添加课程' }}</h2>
             <button
               @click="closeForm"
@@ -613,117 +791,164 @@ function handleContextMenuDelete() {
             </button>
           </div>
           
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">课程名称</label>
-              <input
-                v-model="formData.title"
-                type="text"
-                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
-                placeholder="输入课程名称"
-              />
+          <div class="grid grid-cols-2 gap-6">
+            <div class="bg-gray-50 rounded-xl p-4">
+              <h3 class="text-sm font-medium text-gray-700 mb-4 flex items-center gap-2">
+                <BookOpen :size="16" />
+                课程信息
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">课程名称</label>
+                  <input
+                    v-model="formData.title"
+                    type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                    placeholder="输入课程名称"
+                  />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">教师</label>
+                    <input
+                      v-model="formData.teacher"
+                      type="text"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                      placeholder="教师姓名"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">教室</label>
+                    <input
+                      v-model="formData.classroom"
+                      type="text"
+                      class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                      placeholder="教室位置"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">周次类型</label>
+                  <div class="grid grid-cols-3 gap-2">
+                    <button
+                      v-for="option in weekTypeOptions"
+                      :key="option.value"
+                      @click="formData.weekType = option.value as 'all' | 'odd' | 'even'"
+                      class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                      :class="formData.weekType === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    >
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">颜色</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="color in scheduleColors"
+                      :key="color"
+                      @click="formData.color = color"
+                      class="w-8 h-8 rounded-full transition-all border-2"
+                      :class="formData.color === color ? 'border-gray-800 scale-110' : 'border-transparent hover:scale-105'"
+                      :style="{ backgroundColor: color }"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
+                  <textarea
+                    v-model="formData.remark"
+                    rows="4"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none"
+                    placeholder="添加课程备注..."
+                  />
+                </div>
+              </div>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">教师</label>
-                <input
-                  v-model="formData.teacher"
-                  type="text"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
-                  placeholder="教师姓名"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">教室</label>
-                <input
-                  v-model="formData.classroom"
-                  type="text"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
-                  placeholder="教室位置"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">星期</label>
-              <div class="grid grid-cols-7 gap-2">
+            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Clock :size="16" />
+                  上课时间 ({{ formData.schedules.length }} 个时段)
+                </h3>
                 <button
-                  v-for="(day, index) in store.weekDays"
+                  v-if="formData.schedules.length < 7"
+                  @click="addSchedule"
+                  class="flex items-center gap-1 px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <Plus :size="14" />
+                  添加时段
+                </button>
+              </div>
+              
+              <div class="space-y-3">
+                <div
+                  v-for="(schedule, index) in formData.schedules"
                   :key="index"
-                  @click="formData.dayOfWeek = index + 1"
-                  class="px-3 py-2 rounded-xl text-sm font-medium transition-all"
-                  :class="formData.dayOfWeek === index + 1 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                  class="bg-white rounded-xl p-4 border border-gray-200"
                 >
-                  {{ day.slice(-1) }}
-                </button>
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-medium text-gray-500">时段 {{ index + 1 }}</span>
+                    <button
+                      v-if="formData.schedules.length > 1"
+                      @click="removeSchedule(index)"
+                      class="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <X :size="16" />
+                    </button>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1.5">星期</label>
+                      <select
+                        v-model="schedule.dayOfWeek"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                      >
+                        <option v-for="(day, i) in store.weekDays" :key="i" :value="i + 1">{{ day }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1.5">节次预设</label>
+                      <select
+                        @change="(e) => { const preset = periodPresets.find(p => p.label === (e.target as HTMLSelectElement).value); if (preset) applyPeriodPreset(index, preset) }"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                      >
+                        <option value="">选择节次</option>
+                        <option v-for="preset in periodPresets" :key="preset.label" :value="preset.label">{{ preset.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1.5">开始时间</label>
+                      <input
+                        v-model="schedule.startTime"
+                        type="time"
+                        :min="store.settings.startTime"
+                        :max="store.settings.endTime"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-gray-600 mb-1.5">结束时间</label>
+                      <input
+                        v-model="schedule.endTime"
+                        type="time"
+                        :min="store.settings.startTime"
+                        :max="store.settings.endTime"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
-                <input
-                  v-model="formData.startTime"
-                  type="time"
-                  :min="store.settings.startTime"
-                  :max="store.settings.endTime"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
-                <input
-                  v-model="formData.endTime"
-                  type="time"
-                  :min="store.settings.startTime"
-                  :max="store.settings.endTime"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">周次类型</label>
-              <div class="grid grid-cols-3 gap-2">
-                <button
-                  v-for="option in weekTypeOptions"
-                  :key="option.value"
-                  @click="formData.weekType = option.value as 'all' | 'odd' | 'even'"
-                  class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
-                  :class="formData.weekType === option.value ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                >
-                  {{ option.label }}
-                </button>
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">颜色</label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="(color, index) in scheduleColors"
-                  :key="color"
-                  @click="formData.color = color"
-                  class="w-8 h-8 rounded-full transition-all border-2"
-                  :class="formData.color === color ? 'border-gray-800 scale-110' : 'border-transparent hover:scale-105'"
-                  :style="{ backgroundColor: color }"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">备注</label>
-              <textarea
-                v-model="formData.remark"
-                rows="3"
-                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none"
-                placeholder="添加课程备注..."
-              />
             </div>
           </div>
           
-          <div class="flex gap-3 mt-6">
+          <div class="flex gap-3 mt-6 sticky bottom-0 bg-white pt-4 border-t border-gray-100">
             <button
               @click="closeForm"
               class="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all font-medium"
@@ -817,7 +1042,7 @@ function handleContextMenuDelete() {
               <label class="block text-sm font-medium text-gray-700 mb-2">颜色</label>
               <div class="flex flex-wrap gap-2">
                 <button
-                  v-for="(color, index) in scheduleColors"
+                  v-for="color in scheduleColors"
                   :key="color"
                   @click="tempFormData.color = color"
                   class="w-8 h-8 rounded-full transition-all border-2"

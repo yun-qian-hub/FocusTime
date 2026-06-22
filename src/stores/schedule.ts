@@ -143,6 +143,14 @@ export const useScheduleStore = defineStore('schedule', () => {
     return scheduleColors[courses.value.length % scheduleColors.length]
   }
 
+  function getColorByTitle(title: string): string {
+    let hash = 0
+    for (let i = 0; i < title.length; i++) {
+      hash = title.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return scheduleColors[Math.abs(hash) % scheduleColors.length]
+  }
+
   function getBorderColor(bgColor: string): string {
     const index = scheduleColors.indexOf(bgColor)
     return index >= 0 ? scheduleBorderColors[index] : '#6b7280'
@@ -220,6 +228,7 @@ export const useScheduleStore = defineStore('schedule', () => {
     setWeekOffset,
     resetWeekToToday,
     getNextColor,
+    getColorByTitle,
     getBorderColor,
     getCoursesForDay,
     getRemovedCoursesForDay,

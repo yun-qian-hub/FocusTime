@@ -4,7 +4,15 @@ export const calendarEventTypeColors: Record<string, string> = {
   life: '#fef3c7',
   project: '#fce7f3',
   meeting: '#e0e7ff',
-  task: '#f1f5f9'
+  task: '#f1f5f9',
+  default: '#dbeafe',
+  vacation: '#fed7aa',
+  holiday: '#cffafe',
+  appointment: '#fde68a',
+  reminder: '#fbcfe8',
+  travel: '#bfdbfe',
+  event: '#86efac',
+  celebration: '#fcd34d'
 }
 
 export const importantEventTypeColors: Record<string, string> = {
@@ -12,13 +20,24 @@ export const importantEventTypeColors: Record<string, string> = {
   competition: '#fed7aa',
   activity: '#bbf7d0',
   deadline: '#ddd6fe',
-  other: '#f3f4f6'
+  other: '#f3f4f6',
+  thesis: '#dbeafe',
+  presentation: '#dcfce7',
+  performance: '#fef3c7',
+  interview: '#fce7f3',
+  registration: '#e0e7ff',
+  opening: '#fed7aa',
+  closing: '#cffafe',
+  review: '#fde68a'
 }
 
 export const priorityColors: Record<string, string> = {
-  high: '#fee2e2',
+  high: '#fecaca',
   medium: '#fef3c7',
-  low: '#dcfce7'
+  low: '#dcfce7',
+  urgent: '#fca5a5',
+  normal: '#fef9c3',
+  minor: '#bbf7d0'
 }
 
 export const scheduleColors: string[] = [

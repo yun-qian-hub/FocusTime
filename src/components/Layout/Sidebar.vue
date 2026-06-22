@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { Calendar, CheckSquare, StickyNote, Bell, Star, Database, Layers, BookOpen, Timer } from 'lucide-vue-next'
+import { Calendar, CheckSquare, StickyNote, Bell, Star, Database, Layers, BookOpen, Timer, Sparkles } from 'lucide-vue-next'
 import type { TabType } from '@/types'
 
 defineProps<{
@@ -19,7 +19,8 @@ const tabs: { id: TabType; icon: typeof Calendar; label: string }[] = [
   { id: 'period', icon: Layers, label: '周期' },
   { id: 'schedule', icon: BookOpen, label: '课表' },
   { id: 'pomodoro', icon: Timer, label: '番茄' },
-  { id: 'datamanager', icon: Database, label: '数据' }
+  { id: 'datamanager', icon: Database, label: '数据' },
+  { id: 'playground', icon: Sparkles, label: '创意' }
 ]
 </script>
 <template>

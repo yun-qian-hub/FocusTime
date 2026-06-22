@@ -60,6 +60,9 @@ coverage/
 !postcss.config.js
 !.eslintrc.cjs
 
+# Playground - test module, not to be committed
+src/components/Playground/Playground.vue
+
 # Optional: lock file for libraries (keep it for apps)
 # package-lock.json
 # yarn.lock

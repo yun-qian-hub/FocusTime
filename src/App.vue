@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, defineAsyncComponent } from 'vue'
 import Sidebar from '@/components/Layout/Sidebar.vue'
 import Calendar from '@/components/Calendar/Calendar.vue'
 import Todo from '@/components/Todo/Todo.vue'
@@ -10,9 +10,20 @@ import Period from '@/components/Period/Period.vue'
 import Schedule from '@/components/Schedule/Schedule.vue'
 import DataManager from '@/components/DataManager/DataManager.vue'
 import Pomodoro from '@/components/Pomodoro/Pomodoro.vue'
+import PlaygroundError from '@/components/Playground/PlaygroundError.vue'
 import type { TabType } from '@/types'
 
 const activeTab = ref<TabType>('calendar')
+
+const Playground = defineAsyncComponent({
+  loader: () => import('@/components/Playground/Playground.vue'),
+  loadingComponent: {
+    template: '<div class="flex-1 flex items-center justify-center"><div class="text-gray-500">加载中...</div></div>'
+  },
+  errorComponent: PlaygroundError,
+  delay: 0,
+  timeout: 3000
+})
 
 function handleTabChange(tab: TabType) {
   activeTab.value = tab
@@ -34,6 +45,7 @@ function handleTabChange(tab: TabType) {
         <Schedule v-else-if="activeTab === 'schedule'" key="schedule" />
         <Pomodoro v-else-if="activeTab === 'pomodoro'" key="pomodoro" />
         <DataManager v-else-if="activeTab === 'datamanager'" key="datamanager" />
+        <Playground v-else-if="activeTab === 'playground'" key="playground" />
       </Transition>
     </main>
   </div>

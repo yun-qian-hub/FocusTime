@@ -143,4 +143,4 @@ export interface PomodoroSettings {
   soundEnabled: boolean
 }
 
-export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule' | 'pomodoro' | 'playground'
+export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule' | 'pomodoro'

@@ -23,7 +23,7 @@ function handleTabChange(tab: TabType) {
   <div class="flex h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-hidden">
     <Sidebar :activeTab="activeTab" @tabChange="handleTabChange" />
     
-    <main class="flex-1 overflow-hidden">
+    <main class="flex-1 overflow-auto">
       <Transition name="fade">
         <Calendar v-if="activeTab === 'calendar'" key="calendar" />
         <Todo v-else-if="activeTab === 'todo'" key="todo" />

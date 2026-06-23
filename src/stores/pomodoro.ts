@@ -7,6 +7,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   shortBreak: 5,
   longBreak: 15,
   cyclesBeforeLongBreak: 4,
+  targetCycles: 4,
   autoStartBreak: false,
   autoStartFocus: false,
   soundEnabled: true
@@ -15,7 +16,21 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
 function getSettings(): PomodoroSettings {
   try {
     const data = localStorage.getItem('task_manager_pomodoro_settings')
-    return data ? { ...DEFAULT_SETTINGS, ...JSON.parse(data) } : DEFAULT_SETTINGS
+    if (data) {
+      const saved = JSON.parse(data)
+      const migrated = { ...DEFAULT_SETTINGS, ...saved }
+      if (saved.focusTime && saved.focusTime >= 5) {
+        migrated.focusTime = Math.min(saved.focusTime, 60)
+      }
+      if (saved.shortBreak && saved.shortBreak >= 1) {
+        migrated.shortBreak = Math.min(saved.shortBreak, 30)
+      }
+      if (!migrated.targetCycles) {
+        migrated.targetCycles = DEFAULT_SETTINGS.targetCycles
+      }
+      return migrated
+    }
+    return DEFAULT_SETTINGS
   } catch {
     return DEFAULT_SETTINGS
   }
@@ -233,14 +248,25 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         completedCycles.value++
         currentSession.value.completedCycles = completedCycles.value
         
-        if (completedCycles.value >= settings.value.cyclesBeforeLongBreak) {
-          currentStatus.value = 'longBreak'
-          currentSession.value.status = 'longBreak'
-          completedCycles.value = 0
-        } else {
-          currentStatus.value = 'shortBreak'
-          currentSession.value.status = 'shortBreak'
+        sessions.value.unshift(currentSession.value)
+        saveSessions(sessions.value)
+        
+        accumulatedFocusSeconds.value = 0
+        
+        const now = new Date()
+        currentSession.value = {
+          id: Date.now(),
+          date: now.toISOString().split('T')[0],
+          focusTime: 0,
+          shortBreak: 0,
+          longBreak: 0,
+          cycles: settings.value.targetCycles,
+          completedCycles: completedCycles.value,
+          status: 'shortBreak',
+          createdAt: now.toISOString()
         }
+        
+        currentStatus.value = 'shortBreak'
         
         if (settings.value.soundEnabled) {
           playNotificationSound()

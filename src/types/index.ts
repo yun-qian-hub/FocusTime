@@ -138,6 +138,7 @@ export interface PomodoroSettings {
   shortBreak: number
   longBreak: number
   cyclesBeforeLongBreak: number
+  targetCycles: number
   autoStartBreak: boolean
   autoStartFocus: boolean
   soundEnabled: boolean

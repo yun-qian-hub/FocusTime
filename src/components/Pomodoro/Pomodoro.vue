@@ -25,14 +25,6 @@ const timerColors = {
     glow: 'shadow-green-500/30',
     gradient: 'linear-gradient(135deg, #22c55e, #10b981)'
   },
-  longBreak: {
-    primary: '#3b82f6',
-    secondary: '#8b5cf6',
-    bg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
-    ring: 'text-blue-500',
-    glow: 'shadow-blue-500/30',
-    gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
-  },
   idle: {
     primary: '#6b7280',
     secondary: '#9ca3af',
@@ -79,17 +71,24 @@ function formatMinutes(minutes: number): string {
   return Math.round(minutes).toString()
 }
 
+function formatSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (mins > 0) {
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  return secs.toString()
+}
+
 const statusLabels: Record<string, string> = {
   focus: '专注时间',
   shortBreak: '短休息',
-  longBreak: '长休息',
   idle: '准备开始'
 }
 
 const statusIcons: Record<string, typeof Timer> = {
   focus: Zap,
   shortBreak: Coffee,
-  longBreak: Sun,
   idle: Timer
 }
 </script>
@@ -117,7 +116,7 @@ const statusIcons: Record<string, typeof Timer> = {
                 <div class="flex gap-3">
                   <button 
                     @click="store.switchToFocus(); store.pauseSession()" 
-                    class="flex items-center gap-2 px-5 py-3 rounded-xl transition-all duration-300 transform hover:scale-105" 
+                    class="flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105" 
                     :class="store.currentStatus === 'focus' ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-500/40' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                   >
                     <Zap :size="18" />
@@ -125,19 +124,11 @@ const statusIcons: Record<string, typeof Timer> = {
                   </button>
                   <button 
                     @click="store.switchToShortBreak(); store.pauseSession()" 
-                    class="flex items-center gap-2 px-5 py-3 rounded-xl transition-all duration-300 transform hover:scale-105" 
+                    class="flex items-center gap-2 px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105" 
                     :class="store.currentStatus === 'shortBreak' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/40' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                   >
                     <Coffee :size="18" />
                     <span class="text-sm font-semibold">短休息</span>
-                  </button>
-                  <button 
-                    @click="store.switchToLongBreak(); store.pauseSession()" 
-                    class="flex items-center gap-2 px-5 py-3 rounded-xl transition-all duration-300 transform hover:scale-105" 
-                    :class="store.currentStatus === 'longBreak' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/40' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                  >
-                    <Sun :size="18" />
-                    <span class="text-sm font-semibold">长休息</span>
                   </button>
                 </div>
               </div>
@@ -223,12 +214,12 @@ const statusIcons: Record<string, typeof Timer> = {
               
               <div v-if="store.completedCycles > 0" class="flex justify-center gap-3 mt-8">
                 <div 
-                  v-for="i in store.settings.cyclesBeforeLongBreak" 
+                  v-for="i in store.settings.targetCycles" 
                   :key="i" 
                   class="w-4 h-4 rounded-full transition-all duration-300 transform" 
                   :class="i <= store.completedCycles ? 'bg-gradient-to-br from-red-500 to-orange-500 scale-110 shadow-lg shadow-red-500/50' : 'bg-gray-200'" 
                 />
-                <span class="ml-2 text-sm text-gray-500 font-medium">{{ store.completedCycles }}/{{ store.settings.cyclesBeforeLongBreak }} 轮</span>
+                <span class="ml-2 text-sm text-gray-500 font-medium">{{ store.completedCycles }}/{{ store.settings.targetCycles }} 轮</span>
               </div>
             </div>
           </div>
@@ -335,18 +326,10 @@ const statusIcons: Record<string, typeof Timer> = {
             </div>
             
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">长休息时间（分钟）</label>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">目标轮数</label>
               <div class="flex items-center gap-4">
-                <input v-model.number="localSettings.longBreak" type="range" min="5" max="30" step="5" class="flex-1 h-3 bg-gray-200 rounded-full appearance-none cursor-pointer slider" />
-                <span class="text-sm font-bold w-12 text-right text-gray-800">{{ localSettings.longBreak }}</span>
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">长休息前的番茄数</label>
-              <div class="flex items-center gap-4">
-                <input v-model.number="localSettings.cyclesBeforeLongBreak" type="range" min="2" max="8" step="1" class="flex-1 h-3 bg-gray-200 rounded-full appearance-none cursor-pointer slider" />
-                <span class="text-sm font-bold w-12 text-right text-gray-800">{{ localSettings.cyclesBeforeLongBreak }}</span>
+                <input v-model.number="localSettings.targetCycles" type="range" min="1" max="12" step="1" class="flex-1 h-3 bg-gray-200 rounded-full appearance-none cursor-pointer slider" />
+                <span class="text-sm font-bold w-12 text-right text-gray-800">{{ localSettings.targetCycles }}</span>
               </div>
             </div>
             

@@ -43,17 +43,15 @@ const timerColors = {
   }
 }
 
-const currentColor = computed(() => timerColors[store.currentStatus])
+const currentColor = computed(() => timerColors[store.currentStatus as keyof typeof timerColors])
 const progressDegrees = computed(() => (store.getProgress() / 100) * 360)
 
 onMounted(() => {
-  if (!store.isRunning) {
-    store.initializeTimer()
-  }
-  store.resumeIfRunning()
+  store.initializeTimer()
 })
 
 onUnmounted(() => {
+  store.cleanTimer()
 })
 
 function toggleTimer() {

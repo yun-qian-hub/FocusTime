@@ -71,7 +71,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   const currentSession = ref<PomodoroSession | null>(null)
   const timeLeft = ref(0)
   const isRunning = ref(false)
-  const timerRunning = ref(false)
   const currentStatus = ref<'focus' | 'shortBreak' | 'longBreak' | 'idle'>('idle')
   const completedCycles = ref(0)
   const totalFocusTime = ref(0)
@@ -136,7 +135,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     }
     
     isRunning.value = true
-    timerRunning.value = true
     endTime.value = Date.now() + timeLeft.value * 1000
     
     if (!timerInterval) {
@@ -146,7 +144,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   function pauseSession() {
     isRunning.value = false
-    timerRunning.value = false
+    endTime.value = Date.now() + timeLeft.value * 1000
     stopTimer()
     saveTimerState({
       timeLeft: timeLeft.value,
@@ -161,7 +159,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   function stopSession() {
     isRunning.value = false
-    timerRunning.value = false
     stopTimer()
     clearTimerState()
     if (currentSession.value) {
@@ -218,7 +215,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       if (timeLeft.value <= 0) {
         handleTimerComplete()
       }
-    }, 500)
+    }, 1000)
   }
 
   function stopTimer() {
@@ -226,7 +223,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       clearInterval(timerInterval)
       timerInterval = null
     }
-    timerRunning.value = false
   }
 
   function handleTimerComplete() {
@@ -254,12 +250,10 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         
         if (settings.value.autoStartBreak) {
           isRunning.value = true
-          timerRunning.value = true
           endTime.value = Date.now() + timeLeft.value * 1000
           startTimer()
         } else {
           isRunning.value = false
-          timerRunning.value = false
           saveTimerState({
             timeLeft: timeLeft.value,
             isRunning: false,
@@ -282,12 +276,10 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         
         if (settings.value.autoStartFocus) {
           isRunning.value = true
-          timerRunning.value = true
           endTime.value = Date.now() + timeLeft.value * 1000
           startTimer()
         } else {
           isRunning.value = false
-          timerRunning.value = false
           saveTimerState({
             timeLeft: timeLeft.value,
             isRunning: false,
@@ -381,40 +373,42 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       currentStatus.value = savedState.currentStatus
       completedCycles.value = savedState.completedCycles
       accumulatedFocusSeconds.value = savedState.accumulatedFocusSeconds
-      endTime.value = savedState.endTime
       
-      if (savedState.isRunning) {
-        const now = Date.now()
-        const newTimeLeft = Math.max(0, Math.round((savedState.endTime - now) / 1000))
-        timeLeft.value = newTimeLeft
-        isRunning.value = true
-        timerRunning.value = true
+      const now = Date.now()
+      
+      if (savedState.endTime > now + 1000) {
+        endTime.value = savedState.endTime
+        timeLeft.value = Math.max(0, Math.round((savedState.endTime - now) / 1000))
         
-        if (!timerInterval) {
-          startTimer()
+        if (savedState.isRunning) {
+          isRunning.value = true
+          if (!timerInterval) {
+            startTimer()
+          }
+        } else {
+          isRunning.value = false
         }
       } else {
-        timeLeft.value = savedState.timeLeft
+        resetTimer()
         isRunning.value = false
-        timerRunning.value = false
+        clearTimerState()
       }
     } else {
       resetTimer()
       isRunning.value = false
-      timerRunning.value = false
     }
   }
 
-  function resumeIfRunning() {
-    if (isRunning.value && !timerRunning.value) {
-      const now = Date.now()
-      const newTimeLeft = Math.max(0, Math.round((endTime.value - now) / 1000))
-      timeLeft.value = newTimeLeft
-      timerRunning.value = true
-      if (!timerInterval) {
-        startTimer()
-      }
-    }
+  function cleanTimer() {
+    saveTimerState({
+      timeLeft: timeLeft.value,
+      isRunning: isRunning.value,
+      currentStatus: currentStatus.value,
+      completedCycles: completedCycles.value,
+      lastSaveTime: Date.now(),
+      accumulatedFocusSeconds: accumulatedFocusSeconds.value,
+      endTime: endTime.value
+    })
   }
 
   return {
@@ -423,7 +417,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     currentSession,
     timeLeft,
     isRunning,
-    timerRunning,
     currentStatus,
     completedCycles,
     totalFocusTime,
@@ -443,6 +436,6 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     getFormattedTime,
     getProgress,
     initializeTimer,
-    resumeIfRunning
+    cleanTimer
   }
 })

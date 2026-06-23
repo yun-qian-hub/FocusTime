@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+﻿﻿<script setup lang="ts">
 import { Calendar, CheckSquare, StickyNote, Bell, Star, Database, Layers, BookOpen, Timer } from 'lucide-vue-next'
 import type { TabType } from '@/types'
 

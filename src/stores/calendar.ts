@@ -8,6 +8,7 @@ export const useCalendarStore = defineStore('calendar', () => {
   const events = ref<CalendarEvent[]>(getEvents())
   const currentDate = ref(new Date())
   const selectedDate = ref(new Date())
+  const showCompleted = ref(true)
   
   const currentMonth = computed(() => currentDate.value.getMonth())
   const currentYear = computed(() => currentDate.value.getFullYear())
@@ -43,24 +44,33 @@ export const useCalendarStore = defineStore('calendar', () => {
       const date = daysInPreviousMonth.value - i
       const month = currentMonth.value - 1
       const year = month < 0 ? currentYear.value - 1 : currentYear.value
-      days.push({ date, month: month < 0 ? 11 : month, year: month < 0 ? year : currentYear.value, isCurrentMonth: false, isToday: isToday(year, month < 0 ? 11 : month, date), events: getEventsForDate(new Date(year, month, date)) })
+      const monthAdj = month < 0 ? 11 : month
+      days.push({ date, month: monthAdj, year, isCurrentMonth: false, isToday: isToday(year, monthAdj, date), events: getFilteredEvents(getEventsForDate(new Date(year, monthAdj, date))) })
     }
     
     for (let i = 1; i <= daysInMonth.value; i++) {
-      days.push({ date: i, month: currentMonth.value, year: currentYear.value, isCurrentMonth: true, isToday: isToday(currentYear.value, currentMonth.value, i), events: getEventsForDate(new Date(currentYear.value, currentMonth.value, i)) })
+      days.push({ date: i, month: currentMonth.value, year: currentYear.value, isCurrentMonth: true, isToday: isToday(currentYear.value, currentMonth.value, i), events: getFilteredEvents(getEventsForDate(new Date(currentYear.value, currentMonth.value, i))) })
     }
     
     const remainingDays = 42 - days.length
     for (let i = 1; i <= remainingDays; i++) {
       const month = currentMonth.value + 1
       const year = month > 11 ? currentYear.value + 1 : currentYear.value
-      days.push({ date: i, month: month > 11 ? 0 : month, year: month > 11 ? year : currentYear.value, isCurrentMonth: false, isToday: isToday(year, month > 11 ? 0 : month, i), events: getEventsForDate(new Date(year, month > 11 ? 0 : month, i)) })
+      const monthAdj = month > 11 ? 0 : month
+      days.push({ date: i, month: monthAdj, year, isCurrentMonth: false, isToday: isToday(year, monthAdj, i), events: getFilteredEvents(getEventsForDate(new Date(year, monthAdj, i))) })
     }
     
     return days
   })
   
   const selectedDateEvents = computed(() => getEventsForDate(selectedDate.value))
+  
+  function getFilteredEvents(eventsList: any[]) {
+    if (showCompleted.value) return eventsList
+    return eventsList.filter(e => !e.completed)
+  }
+  
+  const selectedDateFilteredEvents = computed(() => getFilteredEvents(selectedDateEvents.value))
   
   function isToday(year: number, month: number, date: number): boolean {
     const today = new Date()
@@ -117,6 +127,14 @@ export const useCalendarStore = defineStore('calendar', () => {
     saveEvents(events.value)
   }
   
+  function toggleEventCompleted(id: number) {
+    const event = events.value.find(e => e.id === id)
+    if (event) {
+      event.completed = !event.completed
+      saveEvents(events.value)
+    }
+  }
+  
   function setCurrentDate(date: Date) { currentDate.value = date }
   function setSelectedDate(date: Date) { selectedDate.value = date }
   
@@ -137,5 +155,5 @@ export const useCalendarStore = defineStore('calendar', () => {
     selectedDate.value = new Date()
   }
   
-  return { events, currentDate, selectedDate, currentMonth, currentYear, calendarDays, selectedDateEvents, addEvent, updateEvent, deleteEvent, setCurrentDate, setSelectedDate, nextMonth, prevMonth, goToToday }
+  return { events, currentDate, selectedDate, showCompleted, currentMonth, currentYear, calendarDays, selectedDateEvents, selectedDateFilteredEvents, addEvent, updateEvent, deleteEvent, toggleEventCompleted, setCurrentDate, setSelectedDate, nextMonth, prevMonth, goToToday }
 })

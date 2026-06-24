@@ -1,4 +1,4 @@
-﻿﻿<script setup lang="ts">
+﻿<script setup lang="ts">
 import { Calendar, CheckSquare, StickyNote, Bell, Star, Database, Layers, BookOpen, Timer } from 'lucide-vue-next'
 import type { TabType } from '@/types'
 
@@ -13,9 +13,9 @@ const emit = defineEmits<{
 const tabs: { id: TabType; icon: typeof Calendar; label: string }[] = [
   { id: 'calendar', icon: Calendar, label: '日历' },
   { id: 'todo', icon: CheckSquare, label: '待办' },
-  { id: 'notes', icon: StickyNote, label: '便签' },
+  { id: 'notes', icon: StickyNote, label: '笔记' },
   { id: 'alarm', icon: Bell, label: '闹钟' },
-  { id: 'important', icon: Star, label: '重要' },
+  { id: 'important', icon: Star, label: '事件' },
   { id: 'period', icon: Layers, label: '周期' },
   { id: 'schedule', icon: BookOpen, label: '课表' },
   { id: 'pomodoro', icon: Timer, label: '番茄' },

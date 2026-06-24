@@ -1,6 +1,6 @@
-﻿﻿﻿<script setup lang="ts">
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette, Star } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette, Star, Check, Eye, EyeOff } from 'lucide-vue-next'
 import { useCalendarStore } from '@/stores/calendar'
 import { useImportantStore } from '@/stores/important'
 import type { CalendarEvent } from '@/types'
@@ -173,6 +173,10 @@ function closeModal() {
   }
 }
 
+function toggleCompleted(eventId: number) {
+  store.toggleEventCompleted(eventId)
+}
+
 function selectDay(day: { date: number; month: number; year: number }) {
   store.setSelectedDate(new Date(day.year, day.month, day.date))
 }
@@ -241,6 +245,18 @@ const priorityColors = {
   low: '#dcfce7'
 }
 
+const priorityRank: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
+function topEventsByPriority(events: any[]): any[] {
+  return [...events].sort((a, b) => {
+    if (a.isImportant && !b.isImportant) return -1
+    if (!a.isImportant && b.isImportant) return 1
+    const pa = a.priority ? (priorityRank[a.priority] ?? 3) : 3
+    const pb = b.priority ? (priorityRank[b.priority] ?? 3) : 3
+    return pa - pb
+  })
+}
+
 function getEventColorForCell(input: any): string {
   const events = input.events ? input.events : input
   
@@ -262,8 +278,21 @@ function getEventColorForCell(input: any): string {
   return selectedDefaultColor.value
 }
 
-function getDayEventsWithColor(day) {
+function getDayEventsWithColor(day: { events: any[] }) {
   return [...(day.events || [])]
+}
+
+function getEventColorForCellDay(day: { events: any[] }): string {
+  if (!day.events || day.events.length === 0) return 'transparent'
+  
+  const importantEvent = day.events.find((e: any) => e.isImportant)
+  if (importantEvent) return importantEvent.color || '#f3e8ff'
+  
+  const first = day.events[0]
+  if (first.color) return first.color
+  if (first.eventType && calendarEventTypeColors[first.eventType]) return calendarEventTypeColors[first.eventType]
+  if (first.priority && priorityColors[first.priority as keyof typeof priorityColors]) return priorityColors[first.priority as keyof typeof priorityColors]
+  return selectedDefaultColor.value
 }
 
 onMounted(() => {
@@ -309,6 +338,14 @@ onUnmounted(() => {
           class="w-12 h-12 rounded-xl bg-white/50 hover:bg-white/70 flex items-center justify-center transition-all shadow-md"
         >
           <ChevronRight :size="24" class="text-gray-600" />
+        </button>
+        <button
+          @click="store.showCompleted = !store.showCompleted"
+          class="w-12 h-12 rounded-xl bg-white/50 hover:bg-white/70 flex items-center justify-center transition-all shadow-md"
+          :title="store.showCompleted ? '隐藏已完成' : '显示已完成'"
+        >
+          <Eye v-if="store.showCompleted" :size="20" class="text-green-500" />
+          <EyeOff v-else :size="20" class="text-gray-400" />
         </button>
       </div>
     </header>
@@ -369,61 +406,39 @@ onUnmounted(() => {
             index % 7 === 0 || index % 7 === 6 ? 'bg-gray-50/30' : ''
           ]"
           :style="{
-            backgroundColor: getDayEventsWithColor(day).length > 0 ? getEventColorForCell(getDayEventsWithColor(day)) : (isSelected(day) ? selectedDefaultColor : (index % 7 === 0 || index % 7 === 6 ? '#f9fafb' : '#ffffff')),
+            backgroundColor: day.events.length > 0 ? getEventColorForCellDay(day) : (isSelected(day) ? selectedDefaultColor : (index % 7 === 0 || index % 7 === 6 ? '#f9fafb' : '#ffffff')),
             color: isSelected(day) ? 'white' : '#374151',
             borderColor: isSelected(day) ? selectedDefaultColor : '#e5e7eb'
           }"
         >
           <span class="text-xl font-bold z-10">{{ day.date }}</span>
           
-          <div v-if="getDayEventsWithColor(day).length > 0" class="absolute bottom-2 left-2 right-2 z-10">
-            <div v-if="getDayEventsWithColor(day).length === 1" class="flex items-center gap-1.5">
-              <span 
-                v-if="(getDayEventsWithColor(day)[0] as any).isImportant" 
-                class="w-2 h-2 rounded-full"
-                :style="{ backgroundColor: '#f59e0b' }"
-              />
-              <span 
-                class="text-xs font-medium truncate px-2 py-0.5 rounded-full"
-                :style="{ 
-                  backgroundColor: getEventColorForCell(getDayEventsWithColor(day)),
-                  color: '#374151'
-                }"
-              >
-                {{ getDayEventsWithColor(day)[0].title }}
-              </span>
-            </div>
-            <div v-else class="flex flex-wrap gap-1">
+          <div v-if="day.events.length > 0" class="absolute bottom-1 left-1 right-1 z-10" :class="day.events.length === 1 ? '' : day.events.length === 2 ? 'grid grid-cols-2 gap-0.5' : 'grid grid-cols-3 gap-0.5'">
+            <template v-for="(event, i) in topEventsByPriority(day.events)" :key="i">
               <span
-                v-for="(event, i) in getDayEventsWithColor(day).slice(0, 3)"
-                :key="i"
-                class="text-xs font-medium truncate px-2 py-0.5 rounded-full flex items-center gap-1"
-                :style="{ 
-                  backgroundColor: getEventColorForCell([event]),
-                  color: '#374151'
-                }"
-                :title="`${event.title}${(event as any).isImportant ? ' (重要事件)' : ` (${event.repeat === 'none' ? '单次' : getRepeatLabel(event.repeat)})`}`"
+                v-if="i < 3"
+                class="text-[9px] leading-tight font-medium truncate px-1 py-px rounded text-center"
+                :style="{ backgroundColor: (event as any).isImportant ? '#fef3c7' : getEventColorForCell([event]) + '60', color: '#374151' }"
+                :title="event.title"
               >
-                <span v-if="(event as any).isImportant" class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: '#f59e0b' }" />
-                {{ event.title }}
+                <span v-if="event.completed" class="text-green-600 mr-0.5">✓</span>
+                {{ event.title.length > 5 ? event.title.slice(0, 5) + '…' : event.title }}
               </span>
-              <span v-if="getDayEventsWithColor(day).length > 3" class="text-xs px-1.5 rounded-full bg-gray-100 text-gray-600">
-                +{{ getDayEventsWithColor(day).length - 3 }}
-              </span>
-            </div>
+            </template>
+            <span v-if="day.events.length > 3" class="text-[8px] text-gray-400 text-center self-center">+{{ day.events.length - 3 }}</span>
           </div>
           
           <div 
-            v-if="getDayEventsWithColor(day).length > 0 && !isSelected(day)" 
+            v-if="day.events.length > 0 && !isSelected(day)" 
             class="absolute top-1 right-1 z-10 flex gap-1"
           >
             <span 
-              v-for="(event, i) in getDayEventsWithColor(day).slice(0, 3)" 
+              v-for="(event, i) in day.events.slice(0, 3)" 
               :key="i"
               class="w-2 h-2 rounded-full border border-gray-300"
               :style="{ backgroundColor: getEventColorForCell([event]) }"
             />
-            <span v-if="getDayEventsWithColor(day).length > 3" class="w-2 h-2 rounded-full bg-gray-200 border border-gray-300" />
+            <span v-if="day.events.length > 3" class="w-2 h-2 rounded-full bg-gray-200 border border-gray-300" />
           </div>
         </div>
       </div>
@@ -437,7 +452,7 @@ onUnmounted(() => {
           </div>
           <div>
             <h2 class="text-xl font-bold text-gray-800">日程安排</h2>
-            <p class="text-sm text-gray-500">{{ store.selectedDateEvents.length }} 个日程</p>
+            <p class="text-sm text-gray-500">{{ store.selectedDateFilteredEvents.length }} 个日程</p>
           </div>
         </div>
         
@@ -452,75 +467,51 @@ onUnmounted(() => {
         </div>
       </div>
       
-      <div v-if="store.selectedDateEvents.length === 0" class="flex-1 flex flex-col items-center justify-center text-gray-400">
+      <div v-if="store.selectedDateFilteredEvents.length === 0" class="flex-1 flex flex-col items-center justify-center text-gray-400">
         <CalendarIcon :size="48" class="mb-3 opacity-50" />
         <p class="text-base">今天没有日程安排</p>
         <p class="text-sm mt-1">双击或右键添加</p>
       </div>
       
-      <div v-else class="flex-1 overflow-y-auto space-y-3 scrollbar-hide">
+      <div v-else class="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
         <div
-          v-for="event in store.selectedDateEvents"
+          v-for="event in store.selectedDateFilteredEvents"
           :key="event.id"
-          @click="!event.isImportant && openEventModal(event)"
-          class="p-3 rounded-xl hover:transition-all cursor-pointer border-l-4 shadow-md hover:shadow-lg"
+          class="p-2.5 rounded-xl transition-all cursor-pointer border-l-4"
+          :class="[event.completed ? 'opacity-60' : '', (event as any).isImportant ? '' : 'hover:shadow-md']"
           :style="{ backgroundColor: getEventColorForCell([event]) + '60', borderLeftColor: getEventColorForCell([event]) }"
         >
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <Star 
-                  v-if="(event as any).isImportant" 
-                  :size="16" 
-                  class="text-amber-600 fill-amber-600" 
-                />
-                <component 
-                  v-else 
-                  :is="getEventTypeIcon(event.eventType)" 
-                  :size="16" 
-                  class="text-gray-600"
-                />
-                <h3 class="text-base font-bold text-gray-800">{{ event.title }}</h3>
-                <span 
-                  v-if="(event as any).isImportant"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-medium"
+          <div class="flex items-center gap-2">
+            <button
+              v-if="!(event as any).isImportant"
+              @click.stop="toggleCompleted(event.id)"
+              class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+              :class="event.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-gray-400'"
+            >
+              <Check v-if="event.completed" :size="12" class="text-white" />
+            </button>
+            <span v-if="(event as any).isImportant" class="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+              <Star :size="16" class="text-amber-600 fill-amber-600" />
+            </span>
+            <div class="flex-1 min-w-0" @click="(event as any).isImportant ? null : openEventModal(event)">
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-sm font-bold truncate" :class="event.completed ? 'line-through text-gray-400' : 'text-gray-800'">{{ event.title }}</h3>
+                <span
+                  v-if="event.repeat && event.repeat !== 'none'"
+                  class="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px]"
                 >
-                  <Star :size="12" class="fill-amber-500" />
-                  重要
-                </span>
-                <span 
-                  v-else-if="event.repeat && event.repeat !== 'none'"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs"
-                >
-                  <Repeat :size="12" />
+                  <Repeat :size="10" />
                   {{ getRepeatLabel(event.repeat) }}
                 </span>
-              </div>
-              <p v-if="event.description" class="text-gray-600 mt-1 text-sm">{{ event.description }}</p>
-            </div>
-            <div class="flex items-center gap-2 text-gray-500 ml-4">
-              <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <Clock :size="14" />
-              </div>
-              <div class="text-right">
-                <span class="font-bold text-sm" v-if="(event as any).isImportant">重要事件</span>
-                <span class="font-bold text-sm" v-else-if="event.allDay">全天</span>
-                <span class="font-bold text-sm" v-else>{{ event.startTime?.split('T')[1] }}</span>
-                <span v-if="!((event as any).isImportant) && !event.allDay && event.endTime" class="text-xs block">{{ event.endTime.split('T')[1] }}</span>
+                <span
+                  v-if="(event as any).isImportant"
+                  class="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[10px]"
+                >
+                  事件
+                </span>
               </div>
             </div>
-          </div>
-          <div class="mt-2 flex items-center gap-3">
-            <span 
-              class="w-3 h-3 rounded-full border border-gray-300"
-              :style="{ backgroundColor: getEventColorForCell([event]) }"
-            />
-            <span class="text-xs text-gray-500">
-              {{ (event as any).isImportant ? '重要事件' : (event.allDay ? '全天' : '定时') }}
-            </span>
-            <span v-if="event.endDate" class="text-xs text-gray-400">
-              至 {{ event.endDate }}
-            </span>
+            <span class="text-[10px] text-gray-400 flex-shrink-0" v-if="!(event as any).isImportant && !event.allDay">{{ event.startTime?.split('T')[1]?.slice(0, 5) }}</span>
           </div>
         </div>
       </div>

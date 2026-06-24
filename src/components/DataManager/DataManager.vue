@@ -422,10 +422,10 @@ const pieData = computed(() => {
   const items = [
     { label: '待办', value: stats.value.todos, color: '#3b82f6' },
     { label: '日程', value: stats.value.calendarEvents, color: '#6366f1' },
-    { label: '便签', value: stats.value.notes, color: '#f59e0b' },
+    { label: '笔记', value: stats.value.notes, color: '#f59e0b' },
     { label: '加密笔记', value: stats.value.secureNotes, color: '#8b5cf6' },
     { label: '闹钟', value: stats.value.alarms, color: '#10b981' },
-    { label: '重要', value: stats.value.importantEvents, color: '#f97316' },
+    { label: '事件', value: stats.value.importantEvents, color: '#f97316' },
     { label: '课程', value: stats.value.scheduleCourses, color: '#14b8a6' },
     { label: '其他', value: stats.value.periodEvents + stats.value.pomodoroSessions, color: '#94a3b8' },
   ].filter(i => i.value > 0)
@@ -472,9 +472,9 @@ const radarData = computed(() => {
   return [
     { label: '待办', value: stats.value.todos, max: maxVal, color: '#3b82f6' },
     { label: '日程', value: stats.value.calendarEvents, max: maxVal, color: '#6366f1' },
-    { label: '便签', value: stats.value.notes + stats.value.secureNotes, max: maxVal, color: '#f59e0b' },
+    { label: '笔记', value: stats.value.notes + stats.value.secureNotes, max: maxVal, color: '#f59e0b' },
     { label: '闹钟', value: stats.value.alarms, max: maxVal, color: '#10b981' },
-    { label: '重要', value: stats.value.importantEvents, max: maxVal, color: '#f97316' },
+    { label: '事件', value: stats.value.importantEvents, max: maxVal, color: '#f97316' },
     { label: '课程', value: stats.value.scheduleCourses, max: maxVal, color: '#14b8a6' },
   ]
 })
@@ -795,7 +795,7 @@ const activityData = computed(() => {
             <div class="mini-stat" style="--color: #f59e0b">
               <div class="mini-stat-icon"><StickyNote :size="18" /></div>
               <div class="mini-stat-value">{{ stats.notes }}</div>
-              <div class="mini-stat-label">便签</div>
+              <div class="mini-stat-label">笔记</div>
             </div>
             <div class="mini-stat" style="--color: #8b5cf6">
               <div class="mini-stat-icon"><Shield :size="18" /></div>
@@ -810,7 +810,7 @@ const activityData = computed(() => {
             <div class="mini-stat" style="--color: #f97316">
               <div class="mini-stat-icon"><Star :size="18" /></div>
               <div class="mini-stat-value">{{ stats.importantEvents }}</div>
-              <div class="mini-stat-label">重要</div>
+              <div class="mini-stat-label">事件</div>
             </div>
             <div class="mini-stat" style="--color: #ec4899">
               <div class="mini-stat-icon"><Repeat :size="18" /></div>

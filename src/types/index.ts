@@ -32,6 +32,7 @@ export interface CalendarEvent {
   repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
   endDate?: string
   eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
+  completed?: boolean
 }
 
 export interface Note {

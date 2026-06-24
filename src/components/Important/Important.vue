@@ -272,8 +272,8 @@ function closeModal() {
 <template>
   <div class="flex-1 flex flex-col gap-6 p-6">
     <header>
-      <h1 class="text-2xl font-bold text-gray-800">重要事件</h1>
-      <p class="text-gray-500 mt-1">管理考试、比赛、活动等重要事项</p>
+      <h1 class="text-2xl font-bold text-gray-800">事件</h1>
+      <p class="text-gray-500 mt-1">管理考试、比赛、活动等事件</p>
     </header>
     
     <div class="grid grid-cols-4 gap-4">
@@ -395,7 +395,7 @@ function closeModal() {
       
       <div v-if="filteredEvents.length === 0" class="flex-1 flex flex-col items-center justify-center text-gray-400">
         <AlertCircle :size="48" class="mb-4 opacity-50" />
-        <p v-if="store.sortedEvents.length === 0">还没有重要事件</p>
+        <p v-if="store.sortedEvents.length === 0">还没有事件</p>
         <p v-else>没有匹配的事件</p>
         <button @click="openAddModal()" class="mt-4 text-primary hover:underline">
           添加第一个事件
@@ -536,7 +536,7 @@ function closeModal() {
       >
         <div class="glass-card w-full max-w-md p-6 animate-scale-in">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-bold text-gray-800">{{ editingEvent ? '编辑事件' : '添加重要事件' }}</h2>
+            <h2 class="text-xl font-bold text-gray-800">{{ editingEvent ? '编辑事件' : '添加事件' }}</h2>
             <button @click="closeModal" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
               <X :size="18" class="text-gray-500" />
             </button>

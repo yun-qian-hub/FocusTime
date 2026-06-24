@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, X, Tag, Trash2, AlertTriangle, Lock, Unlock } from 'lucide-vue-next'
+import { Plus, X, Tag, Trash2, AlertTriangle, Lock, Unlock, Maximize2, Minimize2 } from 'lucide-vue-next'
 import { useNotesStore, NOTE_COLORS } from '@/stores/notes'
 import { useSecureNotesStore } from '@/stores/secureNotes'
 
@@ -31,6 +31,7 @@ const createSecureError = ref('')
 const unlockPassword = ref('')
 
 const activeTab = ref<'normal' | 'secure'>('normal')
+const isNoteMaximized = ref(false)
 
 const commonlyUsedTags = ['工作', '生活', '学习', '想法', '待办']
 
@@ -184,7 +185,7 @@ function getPreview(content: string): string {
 <template>
   <div class="flex-1 flex flex-col gap-6 p-6">
     <header>
-      <h1 class="text-2xl font-bold text-gray-800">便签</h1>
+      <h1 class="text-2xl font-bold text-gray-800">笔记</h1>
       <p class="text-gray-500 mt-1">{{ activeTab === 'normal' ? '记录你的想法和灵感' : '需要密码才能访问的安全记事本' }}</p>
     </header>
     
@@ -194,7 +195,7 @@ function getPreview(content: string): string {
         class="px-4 py-2 rounded-xl text-sm font-medium transition-all"
         :class="activeTab === 'normal' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
       >
-        普通便签
+        普通笔记
       </button>
       <button
         @click="activeTab = 'secure'"
@@ -206,7 +207,7 @@ function getPreview(content: string): string {
       </button>
     </div>
     
-    <div v-if="activeTab === 'normal'" class="glass-card p-6 flex-1 flex gap-6 overflow-hidden">
+    <div v-if="activeTab === 'normal'" class="glass-card p-6 flex-1 flex gap-6 overflow-hidden relative">
       <div class="w-80 flex flex-col gap-4 overflow-hidden">
         <div class="flex items-center gap-2">
           <input
@@ -214,7 +215,7 @@ function getPreview(content: string): string {
             @keyup.enter="createNote"
             type="text"
             class="input-field flex-1"
-            placeholder="快速创建便签..."
+            placeholder="快速创建笔记..."
           />
           <button
             @click="createNote"
@@ -259,14 +260,14 @@ function getPreview(content: string): string {
           
           <div v-if="store.notes.length === 0" class="flex flex-col items-center justify-center text-gray-400 py-12">
             <Tag :size="32" class="mb-2 opacity-50" />
-            <p>还没有便签</p>
-            <p class="text-sm">在上方输入框创建第一个便签吧</p>
+            <p>还没有笔记</p>
+            <p class="text-sm">在上方输入框创建第一个笔记吧</p>
           </div>
         </div>
       </div>
       
       <div class="flex-1 flex flex-col">
-        <div v-if="store.selectedNote" class="flex-1 glass-card rounded-xl overflow-hidden flex flex-col">
+        <div v-if="store.selectedNote" class="flex-1 glass-card rounded-xl overflow-hidden flex flex-col" :class="{ 'note-maximized': isNoteMaximized }">
           <div class="flex items-center justify-between p-4 border-b border-gray-100">
             <div class="flex items-center gap-2">
               <button
@@ -278,12 +279,22 @@ function getPreview(content: string): string {
                 :style="{ backgroundColor: color }"
               />
             </div>
-            <button
-              @click="deleteNote(store.selectedNoteId!)"
-              class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center"
-            >
-              <Trash2 :size="16" class="text-red-500" />
-            </button>
+            <div class="flex items-center gap-1">
+              <button
+                @click="deleteNote(store.selectedNoteId!)"
+                class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center"
+              >
+                <Trash2 :size="16" class="text-red-500" />
+              </button>
+              <button
+                @click="isNoteMaximized = !isNoteMaximized"
+                class="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center transition-all"
+                title="放大编辑"
+              >
+                <Maximize2 v-if="!isNoteMaximized" :size="16" class="text-blue-500" />
+                <Minimize2 v-else :size="16" class="text-blue-500" />
+              </button>
+            </div>
           </div>
           
           <textarea
@@ -352,14 +363,14 @@ function getPreview(content: string): string {
         
         <div v-else class="flex-1 glass-card rounded-xl flex flex-col items-center justify-center text-gray-400">
           <Tag :size="64" class="mb-4 opacity-50" />
-          <p class="text-lg font-medium">选择一个便签开始编辑</p>
-          <p class="text-sm mt-2">或在左侧创建新便签</p>
+          <p class="text-lg font-medium">选择一个笔记开始编辑</p>
+          <p class="text-sm mt-2">或在左侧创建新笔记</p>
         </div>
       </div>
     </div>
     
     <div v-else class="glass-card p-6 flex-1 flex gap-6 overflow-hidden">
-      <div class="w-80 flex flex-col gap-4 overflow-hidden">
+      <div v-if="!isNoteMaximized" class="w-80 flex flex-col gap-4 overflow-hidden">
         <div class="flex items-center gap-2">
           <button
             @click="showCreateSecureModal = true"
@@ -408,7 +419,7 @@ function getPreview(content: string): string {
       </div>
       
       <div class="flex-1 flex flex-col">
-        <div v-if="secureSelectedNote && secureStore.isUnlocked(secureSelectedNote.id)" class="flex-1 glass-card rounded-xl overflow-hidden flex flex-col">
+        <div v-if="secureSelectedNote && secureStore.isUnlocked(secureSelectedNote.id)" class="flex-1 glass-card rounded-xl overflow-hidden flex flex-col" :class="{ 'note-maximized': isNoteMaximized }">
           <div class="flex items-center justify-between p-4 border-b border-gray-100">
             <input
               :value="secureSelectedNote.title"
@@ -429,6 +440,14 @@ function getPreview(content: string): string {
                 class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center"
               >
                 <Trash2 :size="16" class="text-red-500" />
+              </button>
+              <button
+                @click="isNoteMaximized = !isNoteMaximized"
+                class="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center transition-all"
+                title="放大编辑"
+              >
+                <Maximize2 v-if="!isNoteMaximized" :size="16" class="text-blue-500" />
+                <Minimize2 v-else :size="16" class="text-blue-500" />
               </button>
             </div>
           </div>
@@ -468,13 +487,13 @@ function getPreview(content: string): string {
               <AlertTriangle :size="24" class="text-red-500" />
             </div>
             <div>
-              <h3 class="text-lg font-bold text-gray-800">确认删除便签</h3>
+              <h3 class="text-lg font-bold text-gray-800">确认删除笔记</h3>
               <p class="text-sm text-gray-500">此操作无法撤销</p>
             </div>
           </div>
           
           <p class="text-gray-600 mb-6">
-            确定要删除这个便签吗？删除后将无法恢复。
+            确定要删除这个笔记吗？删除后将无法恢复。
           </p>
           
           <div class="flex gap-3">
@@ -662,3 +681,12 @@ function getPreview(content: string): string {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.note-maximized {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 10 !important;
+  background: white;
+}
+</style>

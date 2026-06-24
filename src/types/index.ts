@@ -71,6 +71,23 @@ export interface PeriodSubtask {
   completed: boolean
 }
 
+export interface PlanItem {
+  id: number
+  title: string
+  description?: string
+  planType: 'period' | 'goal' | 'habit'
+  startDate: string
+  endDate?: string
+  color: string
+  priority: 'high' | 'medium' | 'low'
+  status: 'pending' | 'active' | 'done'
+  progress: number
+  createdAt: string
+  eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
+  subtasks?: PeriodSubtask[]
+  syncToCalendar?: boolean
+}
+
 export interface PeriodEvent {
   id: number
   title: string
@@ -145,4 +162,4 @@ export interface PomodoroSettings {
   soundEnabled: boolean
 }
 
-export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'period' | 'schedule' | 'pomodoro'
+export type TabType = 'calendar' | 'todo' | 'notes' | 'alarm' | 'important' | 'datamanager' | 'plan' | 'schedule' | 'pomodoro'

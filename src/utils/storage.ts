@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   NOTES: 'task_manager_notes',
   ALARMS: 'task_manager_alarms',
   PERIOD_EVENTS: 'task_manager_period_events',
+  PLAN_ITEMS: 'task_manager_plan_items',
   SCHEDULE_COURSES: 'task_manager_schedule_courses',
   SCHEDULE_SETTINGS: 'task_manager_schedule_settings',
   SCHEDULE_OVERRIDES: 'task_manager_schedule_overrides',

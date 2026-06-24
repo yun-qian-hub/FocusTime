@@ -6,7 +6,7 @@ import { useCalendarStore } from '@/stores/calendar'
 import { useNotesStore } from '@/stores/notes'
 import { useAlarmStore } from '@/stores/alarm'
 import { useImportantStore } from '@/stores/important'
-import { usePeriodStore } from '@/stores/period'
+import { usePlanStore } from '@/stores/plan'
 import { useScheduleStore } from '@/stores/schedule'
 import { useSecureNotesStore } from '@/stores/secureNotes'
 import { usePomodoroStore } from '@/stores/pomodoro'
@@ -112,7 +112,7 @@ interface ExportData {
   notes?: any[]
   alarms?: any[]
   importantEvents?: any[]
-  periodEvents?: any[]
+  planItems?: any[]
   scheduleCourses?: any[]
   algorithm?: string
   salt?: string
@@ -129,7 +129,7 @@ async function exportData() {
     secureNotes: secureNotesStore.notes,
     alarms: alarmStore.alarms,
     importantEvents: importantStore.events,
-    periodEvents: periodStore.periodEvents,
+    planItems: planStore.items,
     scheduleCourses: scheduleStore.courses,
     scheduleOverrides: scheduleStore.overrides,
     pomodoroSettings: pomodoroStore.settings,
@@ -236,7 +236,7 @@ function confirmReset() {
   notesStore.notes = []
   alarmStore.alarms = []
   importantStore.events = []
-  periodStore.periodEvents = []
+  planStore.items = []
   scheduleStore.courses = []
   secureNotesStore.notes = []
   pomodoroStore.sessions = []
@@ -343,6 +343,7 @@ async function importData() {
       localStorage.removeItem('task_manager_secure_notes')
       localStorage.removeItem('task_manager_alarms')
       localStorage.removeItem('task_manager_important_events')
+      localStorage.removeItem('task_manager_plan_items')
       localStorage.removeItem('task_manager_period_events')
       localStorage.removeItem('task_manager_schedule_courses')
       localStorage.removeItem('task_manager_schedule_settings')
@@ -370,8 +371,15 @@ async function importData() {
         }))
         localStorage.setItem('task_manager_important_events', JSON.stringify(eventsWithColor))
       }
+      if (importData.planItems) {
+        localStorage.setItem('task_manager_plan_items', JSON.stringify(importData.planItems))
+      }
       if (importData.periodEvents) {
-        localStorage.setItem('task_manager_period_events', JSON.stringify(importData.periodEvents))
+        const migrated = importData.periodEvents.map((e: any) => ({
+          ...e, planType: 'period', priority: 'medium',
+          status: e.completed ? 'done' : 'active', syncToCalendar: true
+        }))
+        localStorage.setItem('task_manager_plan_items', JSON.stringify(migrated))
       }
       if (importData.scheduleCourses) {
         localStorage.setItem('task_manager_schedule_courses', JSON.stringify(importData.scheduleCourses))
@@ -442,7 +450,7 @@ const stats = computed(() => ({
   secureNotes: secureNotesStore.notes.length,
   alarms: alarmStore.alarms.length,
   importantEvents: importantStore.events.length,
-  periodEvents: periodStore.periodEvents.length,
+  planItems: planStore.items.length,
   scheduleCourses: scheduleStore.courses.length,
   pomodoroSessions: pomodoroStore.sessions.length
 }))
@@ -464,7 +472,7 @@ const pieData = computed(() => {
     { label: '闹钟', value: stats.value.alarms, color: '#10b981' },
     { label: '事件', value: stats.value.importantEvents, color: '#f97316' },
     { label: '课程', value: stats.value.scheduleCourses, color: '#14b8a6' },
-    { label: '其他', value: stats.value.periodEvents + stats.value.pomodoroSessions, color: '#94a3b8' },
+    { label: '其他', value: stats.value.planItems + stats.value.pomodoroSessions, color: '#94a3b8' },
   ].filter(i => i.value > 0)
   
   const total = items.reduce((sum, i) => sum + i.value, 0) || 1
@@ -851,8 +859,8 @@ const activityData = computed(() => {
             </div>
             <div class="mini-stat" style="--color: #ec4899">
               <div class="mini-stat-icon"><Repeat :size="18" /></div>
-              <div class="mini-stat-value">{{ stats.periodEvents }}</div>
-              <div class="mini-stat-label">周期</div>
+              <div class="mini-stat-value">{{ stats.planItems }}</div>
+              <div class="mini-stat-label">计划</div>
             </div>
             <div class="mini-stat" style="--color: #14b8a6">
               <div class="mini-stat-icon"><BookOpen :size="18" /></div>

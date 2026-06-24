@@ -71,6 +71,27 @@ export interface PeriodSubtask {
   completed: boolean
 }
 
+export interface PlanResource {
+  title: string
+  url: string
+  type: 'link' | 'doc' | 'video'
+}
+
+export interface PlanSubModule {
+  id: number
+  title: string
+  description?: string
+  startDate: string
+  endDate?: string
+  progress: number
+  progressMode: 'time' | 'task'
+  completed: boolean
+  color?: string
+  resources?: PlanResource[]
+  subtasks?: PeriodSubtask[]
+  order: number
+}
+
 export interface PlanItem {
   id: number
   title: string
@@ -80,11 +101,13 @@ export interface PlanItem {
   endDate?: string
   color: string
   priority: 'high' | 'medium' | 'low'
-  status: 'pending' | 'active' | 'done'
+  status: string
   progress: number
+  progressMode: 'time' | 'task'
   createdAt: string
   eventType?: 'work' | 'study' | 'life' | 'project' | 'meeting' | 'task'
   subtasks?: PeriodSubtask[]
+  subModules?: PlanSubModule[]
   syncToCalendar?: boolean
 }
 

@@ -11,6 +11,7 @@ import { useScheduleStore } from '@/stores/schedule'
 import { useSecureNotesStore } from '@/stores/secureNotes'
 import { usePomodoroStore } from '@/stores/pomodoro'
 import { encryptData, decryptData } from '@/utils/crypto'
+import { compressData, decompressData } from '@/utils/storage'
 
 const todoStore = useTodoStore()
 const calendarStore = useCalendarStore()
@@ -104,6 +105,8 @@ interface ExportData {
   version: string
   exportDate: string
   encrypted: boolean
+  compressed?: boolean
+  data?: string
   todos?: any[]
   calendarEvents?: any[]
   notes?: any[]
@@ -116,7 +119,6 @@ interface ExportData {
   iterations?: number
   iv?: string
   tag?: string
-  data?: string
 }
 
 async function exportData() {
@@ -135,7 +137,7 @@ async function exportData() {
   }
 
   let exportData: ExportData = {
-    version: '1.0',
+    version: '2.0',
     exportDate: new Date().toISOString(),
     encrypted: false
   }
@@ -149,11 +151,13 @@ async function exportData() {
     }
 
     try {
-      const encrypted = await encryptData(JSON.stringify(rawData, null, 2), exportPassword.value)
+      const compressed = await compressData(JSON.stringify(rawData))
+      const encrypted = await encryptData(compressed, exportPassword.value)
       exportData = {
-        version: '1.0',
+        version: '2.0',
         exportDate: new Date().toISOString(),
         encrypted: true,
+        compressed: true,
         ...encrypted
       }
     } catch {
@@ -163,10 +167,26 @@ async function exportData() {
       return
     }
   } else {
-    exportData = { ...exportData, ...rawData }
+    try {
+      const compressed = await compressData(JSON.stringify(rawData))
+      exportData = {
+        version: '2.0',
+        exportDate: new Date().toISOString(),
+        encrypted: false,
+        compressed: true,
+        data: compressed
+      }
+    } catch {
+      exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        encrypted: false,
+        ...rawData
+      }
+    }
   }
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(exportData)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -180,7 +200,7 @@ async function exportData() {
   exportConfirmPassword.value = ''
   exportEncrypt.value = false
 
-  exportMessage.value = exportEncrypt.value ? '数据加密导出成功！' : '数据导出成功！'
+  exportMessage.value = '数据导出成功！'
   showExportMessage.value = true
   setTimeout(() => { showExportMessage.value = false }, 3000)
 }
@@ -295,11 +315,24 @@ async function importData() {
             tag: data.tag,
             data: data.data
           }, importPassword.value)
-          importData = JSON.parse(decrypted)
+          if (data.compressed) {
+            importData = JSON.parse(await decompressData(decrypted))
+          } else {
+            importData = JSON.parse(decrypted)
+          }
         } catch {
           importMessage.value = '密码错误或文件已损坏'
           importSuccess.value = false
           importPassword.value = ''
+          return
+        }
+      } else if (data.compressed && data.data) {
+        try {
+          const decompressed = await decompressData(data.data)
+          importData = JSON.parse(decompressed)
+        } catch {
+          importMessage.value = '文件解析失败，压缩数据可能已损坏'
+          importSuccess.value = false
           return
         }
       }
@@ -307,12 +340,16 @@ async function importData() {
       localStorage.removeItem('task_manager_todos')
       localStorage.removeItem('task_manager_events')
       localStorage.removeItem('task_manager_notes')
+      localStorage.removeItem('task_manager_secure_notes')
       localStorage.removeItem('task_manager_alarms')
       localStorage.removeItem('task_manager_important_events')
       localStorage.removeItem('task_manager_period_events')
       localStorage.removeItem('task_manager_schedule_courses')
       localStorage.removeItem('task_manager_schedule_settings')
+      localStorage.removeItem('task_manager_schedule_overrides')
       localStorage.removeItem('task_manager_calendar_colors')
+      localStorage.removeItem('task_manager_pomodoro_settings')
+      localStorage.removeItem('task_manager_pomodoro_sessions')
 
       if (importData.todos) {
         localStorage.setItem('task_manager_todos', JSON.stringify(importData.todos))

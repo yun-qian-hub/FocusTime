@@ -143,3 +143,47 @@ export function getScheduleZoom(): number {
 export function saveScheduleZoom(zoom: number): void {
   localStorage.setItem(STORAGE_KEYS.SCHEDULE_ZOOM, zoom.toString())
 }
+
+// ---- 数据压缩/解压 ----
+
+export async function compressData(jsonStr: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const stream = new CompressionStream('gzip')
+  const writer = stream.writable.getWriter()
+  writer.write(encoder.encode(jsonStr))
+  writer.close()
+  const reader = stream.readable.getReader()
+  const chunks: Uint8Array[] = []
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+  }
+  const totalLen = chunks.reduce((s, c) => s + c.length, 0)
+  const buf = new Uint8Array(totalLen)
+  let off = 0
+  for (const c of chunks) { buf.set(c, off); off += c.length }
+  return btoa(String.fromCharCode(...buf))
+}
+
+export async function decompressData(base64: string): Promise<string> {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const stream = new DecompressionStream('gzip')
+  const writer = stream.writable.getWriter()
+  writer.write(bytes)
+  writer.close()
+  const reader = stream.readable.getReader()
+  const chunks: Uint8Array[] = []
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+  }
+  const totalLen = chunks.reduce((s, c) => s + c.length, 0)
+  const buf = new Uint8Array(totalLen)
+  let off = 0
+  for (const c of chunks) { buf.set(c, off); off += c.length }
+  return new TextDecoder().decode(buf)
+}

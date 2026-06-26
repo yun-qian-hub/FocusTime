@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Download, Upload, RotateCcw, AlertCircle, CheckCircle, X, Lock, Unlock, Database, ChevronDown, ChevronUp, Zap, Activity, Shield, ArrowRight, BarChart3, PieChart, Target, Calendar, StickyNote, Bell, Star, Repeat, BookOpen, Timer } from 'lucide-vue-next'
 import { useTodoStore } from '@/stores/todo'
 import { useCalendarStore } from '@/stores/calendar'
@@ -57,7 +57,8 @@ const animatedNumbers = ref({
   notes: 0
 })
 
-const hoveredPieSlice = ref<string | null>(null)
+let animationFrameId: number | null = null
+let resetTimer: ReturnType<typeof setInterval> | null = null
 const hoveredCategory = ref<string | null>(null)
 const tooltipVisible = ref(false)
 const tooltipContent = ref('')
@@ -94,11 +95,16 @@ function animateNumbers() {
     animatedNumbers.value.notes = Math.round(targets.notes * easeOut)
     
     if (progress < 1) {
-      requestAnimationFrame(animate)
+      animationFrameId = requestAnimationFrame(animate)
+    } else {
+      animationFrameId = null
     }
   }
   
-  requestAnimationFrame(animate)
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
+  animationFrameId = requestAnimationFrame(animate)
 }
 
 interface ExportData {
@@ -204,8 +210,6 @@ async function exportData() {
   showExportMessage.value = true
   setTimeout(() => { showExportMessage.value = false }, 3000)
 }
-
-let resetTimer: ReturnType<typeof setInterval> | null = null
 
 function startResetCountdown() {
   showResetConfirm.value = true
@@ -542,7 +546,16 @@ const activityData = computed(() => {
   }))
 })
 
-
+onUnmounted(() => {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
+  if (resetTimer) {
+    clearInterval(resetTimer)
+    resetTimer = null
+  }
+})
 
 </script>
 

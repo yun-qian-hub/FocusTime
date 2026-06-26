@@ -33,7 +33,9 @@ onMounted(() => {
   store.startBackgroundTimer()
 })
 
-onUnmounted(() => {})
+onUnmounted(() => {
+  store.stopBackgroundTimer()
+})
 
 function openAddModal(alarm?: Alarm) {
   if (alarm) {

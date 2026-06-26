@@ -426,9 +426,10 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   }
 
   function cleanTimer() {
+    stopTimer()
     saveTimerState({
       timeLeft: timeLeft.value,
-      isRunning: isRunning.value,
+      isRunning: false,
       currentStatus: currentStatus.value,
       completedCycles: completedCycles.value,
       lastSaveTime: Date.now(),

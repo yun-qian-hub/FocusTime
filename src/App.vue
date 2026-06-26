@@ -14,6 +14,22 @@ import type { TabType } from '@/types'
 
 const activeTab = ref<TabType>('calendar')
 
+const components = {
+  calendar: Calendar,
+  todo: Todo,
+  notes: Notes,
+  alarm: Alarm,
+  important: Important,
+  plan: Plan,
+  schedule: Schedule,
+  pomodoro: Pomodoro,
+  datamanager: DataManager
+}
+
+function getComponent(tab: TabType) {
+  return components[tab]
+}
+
 function handleTabChange(tab: TabType) {
   activeTab.value = tab
 }
@@ -24,16 +40,8 @@ function handleTabChange(tab: TabType) {
     <Sidebar :activeTab="activeTab" @tabChange="handleTabChange" />
     
     <main class="flex-1 overflow-auto">
-      <Transition name="fade">
-        <Calendar v-if="activeTab === 'calendar'" key="calendar" />
-        <Todo v-else-if="activeTab === 'todo'" key="todo" />
-        <Notes v-else-if="activeTab === 'notes'" key="notes" />
-        <Alarm v-else-if="activeTab === 'alarm'" key="alarm" />
-        <Important v-else-if="activeTab === 'important'" key="important" />
-        <Plan v-else-if="activeTab === 'plan'" key="plan" />
-        <Schedule v-else-if="activeTab === 'schedule'" key="schedule" />
-        <Pomodoro v-else-if="activeTab === 'pomodoro'" key="pomodoro" />
-        <DataManager v-else-if="activeTab === 'datamanager'" key="datamanager" />
+      <Transition name="fade" mode="out-in">
+        <component :is="getComponent(activeTab)" :key="activeTab" />
       </Transition>
     </main>
   </div>

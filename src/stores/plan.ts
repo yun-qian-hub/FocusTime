@@ -122,8 +122,8 @@ function calcAggregatedProgress(item: PlanItem): number {
 }
 
 export const usePlanStore = defineStore('plan', () => {
-  const items = ref<PlanItem[]>(getPlanItems())
-  const statuses = ref<string[]>(getStatuses())
+  const items = ref<PlanItem[]>([])
+  const statuses = ref<string[]>([...DEFAULT_STATUSES])
 
   const sortedItems = computed(() =>
     [...items.value].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
@@ -373,4 +373,4 @@ export const usePlanStore = defineStore('plan', () => {
     toggleSubModuleSubtask, addSubModuleSubtask, deleteSubModuleSubtask,
     addSubModuleResource, deleteSubModuleResource
   }
-})
+}, { persist: true })

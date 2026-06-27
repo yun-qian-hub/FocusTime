@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup lang="ts">
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette, Star, Check, Eye, EyeOff } from 'lucide-vue-next'
 import { useCalendarStore } from '@/stores/calendar'
@@ -95,6 +95,11 @@ const eventTypeIcons: Record<string, typeof Briefcase> = {
   project: FolderKanban,
   meeting: Users,
   task: ListTodo
+}
+
+function getEventTypeLabel(type?: CalendarEvent['eventType']) {
+  const option = eventTypeOptions.find(o => o.value === type)
+  return option ? option.label : '任务'
 }
 
 function getEventTypeIcon(type?: CalendarEvent['eventType']) {
@@ -379,7 +384,7 @@ onUnmounted(() => {
       </div>
     </Transition>
     
-    <div class="glass-card p-6 mb-4" style="height: 60%; flex-shrink: 0;">
+    <div class="glass-card p-6 mb-4" style="height: 55%; flex-shrink: 0;">
       <div class="grid grid-cols-7 gap-2 mb-3 h-12">
         <div
           v-for="(day, index) in dayNames"
@@ -444,7 +449,7 @@ onUnmounted(() => {
       </div>
     </div>
     
-    <div class="glass-card p-6 overflow-hidden flex flex-col" style="height: 25%; flex-shrink: 0;">
+    <div class="glass-card p-6 overflow-hidden flex flex-col" style="height: 35%; flex-shrink: 0;">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -473,45 +478,66 @@ onUnmounted(() => {
         <p class="text-sm mt-1">双击或右键添加</p>
       </div>
       
-      <div v-else class="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
+      <div v-else class="flex-1 overflow-y-auto space-y-3 scrollbar-hide">
         <div
           v-for="event in store.selectedDateFilteredEvents"
           :key="event.id"
-          class="p-2.5 rounded-xl transition-all cursor-pointer border-l-4"
+          class="p-3.5 rounded-xl transition-all cursor-pointer border-l-4"
           :class="[event.completed ? 'opacity-60' : '', (event as any).isImportant ? '' : 'hover:shadow-md']"
-          :style="{ backgroundColor: getEventColorForCell([event]) + '60', borderLeftColor: getEventColorForCell([event]) }"
+          :style="{ backgroundColor: getEventColorForCell([event]) + '50', borderLeftColor: getEventColorForCell([event]) }"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-start gap-3">
             <button
               v-if="!(event as any).isImportant"
               @click.stop="toggleCompleted(event.id)"
-              class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+              class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all mt-0.5"
               :class="event.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-gray-400'"
             >
               <Check v-if="event.completed" :size="12" class="text-white" />
             </button>
-            <span v-if="(event as any).isImportant" class="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <span v-if="(event as any).isImportant" class="w-5 h-5 flex-shrink-0 flex items-center justify-center mt-0.5">
               <Star :size="16" class="text-amber-600 fill-amber-600" />
             </span>
             <div class="flex-1 min-w-0" @click="(event as any).isImportant ? null : openEventModal(event)">
-              <div class="flex items-center gap-1.5">
-                <h3 class="text-sm font-bold truncate" :class="event.completed ? 'line-through text-gray-400' : 'text-gray-800'">{{ event.title }}</h3>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-base font-bold" :class="event.completed ? 'line-through text-gray-400' : 'text-gray-800'">{{ event.title }}</h3>
                 <span
                   v-if="event.repeat && event.repeat !== 'none'"
-                  class="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 text-[10px]"
+                  class="flex-shrink-0 flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 text-xs font-medium"
                 >
                   <Repeat :size="10" />
                   {{ getRepeatLabel(event.repeat) }}
                 </span>
                 <span
                   v-if="(event as any).isImportant"
-                  class="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 text-[10px]"
+                  class="flex-shrink-0 flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 text-xs font-medium"
                 >
                   事件
                 </span>
+                <span
+                  v-if="event.eventType"
+                  class="flex-shrink-0 flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                  :style="{ backgroundColor: calendarEventTypeColors[event.eventType] + '30', color: calendarEventTypeColors[event.eventType] }"
+                >
+                  <component :is="getEventTypeIcon(event.eventType)" :size="10" />
+                  {{ getEventTypeLabel(event.eventType) }}
+                </span>
+              </div>
+              <p v-if="event.description" class="text-sm text-gray-500 mt-1.5 line-clamp-2 flex items-start gap-1">
+                <Clock :size="12" class="flex-shrink-0 mt-0.5 opacity-60" />
+                {{ event.description }}
+              </p>
+              <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                <span v-if="!(event as any).isImportant && !event.allDay">
+                  <Clock :size="12" class="inline mr-1" />
+                  {{ event.startTime?.split('T')[1]?.slice(0, 5) }}
+                  <span v-if="event.endTime"> - {{ event.endTime?.split('T')[1]?.slice(0, 5) }}</span>
+                </span>
+                <span v-if="event.endDate && event.repeat && event.repeat !== 'none'" class="flex items-center gap-1">
+                  至 {{ event.endDate }}
+                </span>
               </div>
             </div>
-            <span class="text-[10px] text-gray-400 flex-shrink-0" v-if="!(event as any).isImportant && !event.allDay">{{ event.startTime?.split('T')[1]?.slice(0, 5) }}</span>
           </div>
         </div>
       </div>

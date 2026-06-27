@@ -18,7 +18,7 @@ function saveImportantEvents(events: ImportantEvent[]): void {
 }
 
 export const useImportantStore = defineStore('important', () => {
-  const events = ref<ImportantEvent[]>(getImportantEvents())
+  const events = ref<ImportantEvent[]>([])
   
   const sortedEvents = computed(() => {
     return [...events.value].sort((a, b) => {
@@ -64,6 +64,14 @@ export const useImportantStore = defineStore('important', () => {
     saveImportantEvents(events.value)
   }
   
+  function toggleComplete(id: number) {
+    const event = events.value.find(e => e.id === id)
+    if (event) {
+      event.completed = !event.completed
+      saveImportantEvents(events.value)
+    }
+  }
+  
   return {
     events,
     sortedEvents,
@@ -71,6 +79,7 @@ export const useImportantStore = defineStore('important', () => {
     stats,
     addEvent,
     updateEvent,
-    deleteEvent
+    deleteEvent,
+    toggleComplete
   }
-})
+}, { persist: true })

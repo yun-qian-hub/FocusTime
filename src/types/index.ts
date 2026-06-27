@@ -63,6 +63,7 @@ export interface ImportantEvent {
   priority: 'high' | 'medium' | 'low'
   color: string
   createdAt: string
+  completed?: boolean
 }
 
 export interface PeriodSubtask {

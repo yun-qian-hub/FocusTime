@@ -6,7 +6,7 @@ import { getAlarms, saveAlarms } from '@/utils/storage'
 let backgroundIntervalId: number | null = null
 
 export const useAlarmStore = defineStore('alarm', () => {
-  const alarms = ref<Alarm[]>(getAlarms())
+  const alarms = ref<Alarm[]>([])
   const isAlarmRinging = ref(false)
   const ringingAlarm = ref<Alarm | null>(null)
   const lastTriggeredTime = ref('')
@@ -196,4 +196,4 @@ export const useAlarmStore = defineStore('alarm', () => {
     startBackgroundTimer,
     stopBackgroundTimer
   }
-})
+}, { persist: true })

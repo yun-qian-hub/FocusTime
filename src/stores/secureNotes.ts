@@ -75,7 +75,7 @@ function saveSecureNotes(notes: SecureNote[]): void {
 }
 
 export const useSecureNotesStore = defineStore('secureNotes', () => {
-  const notes = ref<SecureNote[]>(getSecureNotes())
+  const notes = ref<SecureNote[]>([])
   const selectedNoteId = ref<number | null>(null)
   const unlockedContent = ref<string>('')
   const unlockedPassword = ref<string>('')
@@ -174,4 +174,4 @@ export const useSecureNotesStore = defineStore('secureNotes', () => {
     lockNote,
     isUnlocked
   }
-})
+}, { persist: true })

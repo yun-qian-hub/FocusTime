@@ -465,4 +465,4 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     initializeTimer,
     cleanTimer
   }
-})
+}, { persist: { paths: ['settings', 'sessions', 'completedCycles', 'totalFocusTime'] } })

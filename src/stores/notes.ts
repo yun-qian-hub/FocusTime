@@ -13,7 +13,7 @@ export const NOTE_COLORS = [
 ]
 
 export const useNotesStore = defineStore('notes', () => {
-  const notes = ref<Note[]>(getNotes())
+  const notes = ref<Note[]>([])
   const selectedNoteId = ref<number | null>(null)
   
   const selectedNote = computed(() => {
@@ -88,4 +88,4 @@ export const useNotesStore = defineStore('notes', () => {
     selectNote,
     toggleTag
   }
-})
+}, { persist: true })

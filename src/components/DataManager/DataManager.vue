@@ -260,6 +260,16 @@ function confirmReset() {
   localStorage.removeItem('task_manager_pomodoro_sessions')
   localStorage.removeItem('task_manager_pomodoro_timer_state')
 
+  localStorage.removeItem('pinia_todo')
+  localStorage.removeItem('pinia_calendar')
+  localStorage.removeItem('pinia_notes')
+  localStorage.removeItem('pinia_secureNotes')
+  localStorage.removeItem('pinia_alarm')
+  localStorage.removeItem('pinia_important')
+  localStorage.removeItem('pinia_plan')
+  localStorage.removeItem('pinia_schedule')
+  localStorage.removeItem('pinia_pomodoro')
+
   showResetConfirm.value = false
   resetConfirmEnabled.value = false
 }
@@ -356,17 +366,48 @@ async function importData() {
       localStorage.removeItem('task_manager_pomodoro_settings')
       localStorage.removeItem('task_manager_pomodoro_sessions')
 
+      localStorage.removeItem('pinia_todo')
+      localStorage.removeItem('pinia_calendar')
+      localStorage.removeItem('pinia_notes')
+      localStorage.removeItem('pinia_secureNotes')
+      localStorage.removeItem('pinia_alarm')
+      localStorage.removeItem('pinia_important')
+      localStorage.removeItem('pinia_plan')
+      localStorage.removeItem('pinia_schedule')
+      localStorage.removeItem('pinia_pomodoro')
+
       if (importData.todos) {
         localStorage.setItem('task_manager_todos', JSON.stringify(importData.todos))
+        localStorage.setItem('pinia_todo', JSON.stringify({
+          todos: importData.todos,
+          filteredTodos: 'all',
+          searchQuery: ''
+        }))
       }
       if (importData.calendarEvents) {
         localStorage.setItem('task_manager_events', JSON.stringify(importData.calendarEvents))
+        localStorage.setItem('pinia_calendar', JSON.stringify({
+          events: importData.calendarEvents,
+          currentDate: new Date().toISOString(),
+          selectedDate: new Date().toISOString(),
+          showCompleted: true
+        }))
       }
       if (importData.notes) {
         localStorage.setItem('task_manager_notes', JSON.stringify(importData.notes))
+        localStorage.setItem('pinia_notes', JSON.stringify({
+          notes: importData.notes,
+          selectedNoteId: null
+        }))
       }
       if (importData.secureNotes) {
         localStorage.setItem('task_manager_secure_notes', JSON.stringify(importData.secureNotes))
+        localStorage.setItem('pinia_secureNotes', JSON.stringify({
+          notes: importData.secureNotes,
+          selectedNoteId: null,
+          unlockedContent: '',
+          unlockedPassword: ''
+        }))
       }
       if (importData.importantEvents) {
         const eventsWithColor = importData.importantEvents.map((event: any) => ({
@@ -374,9 +415,16 @@ async function importData() {
           color: event.color || '#f3e8ff'
         }))
         localStorage.setItem('task_manager_important_events', JSON.stringify(eventsWithColor))
+        localStorage.setItem('pinia_important', JSON.stringify({
+          events: eventsWithColor
+        }))
       }
       if (importData.planItems) {
         localStorage.setItem('task_manager_plan_items', JSON.stringify(importData.planItems))
+        localStorage.setItem('pinia_plan', JSON.stringify({
+          items: importData.planItems,
+          statuses: ['待开始', '进行中', '已完成']
+        }))
       }
       if (importData.periodEvents) {
         const migrated = importData.periodEvents.map((e: any) => ({
@@ -384,18 +432,43 @@ async function importData() {
           status: e.completed ? 'done' : 'active', syncToCalendar: true
         }))
         localStorage.setItem('task_manager_plan_items', JSON.stringify(migrated))
+        localStorage.setItem('pinia_plan', JSON.stringify({
+          items: migrated,
+          statuses: ['待开始', '进行中', '已完成']
+        }))
       }
       if (importData.scheduleCourses) {
         localStorage.setItem('task_manager_schedule_courses', JSON.stringify(importData.scheduleCourses))
+        localStorage.setItem('pinia_schedule', JSON.stringify({
+          courses: importData.scheduleCourses,
+          settings: importData.scheduleSettings || {},
+          overrides: importData.scheduleOverrides || [],
+          currentWeekOffset: 0
+        }))
       }
       if (importData.scheduleOverrides) {
         localStorage.setItem('task_manager_schedule_overrides', JSON.stringify(importData.scheduleOverrides))
       }
       if (importData.pomodoroSettings) {
         localStorage.setItem('task_manager_pomodoro_settings', JSON.stringify(importData.pomodoroSettings))
+        localStorage.setItem('pinia_pomodoro', JSON.stringify({
+          settings: importData.pomodoroSettings,
+          sessions: importData.pomodoroSessions || [],
+          completedCycles: 0,
+          totalFocusTime: 0
+        }))
       }
       if (importData.pomodoroSessions) {
         localStorage.setItem('task_manager_pomodoro_sessions', JSON.stringify(importData.pomodoroSessions))
+      }
+      if (importData.alarms) {
+        localStorage.setItem('task_manager_alarms', JSON.stringify(importData.alarms))
+        localStorage.setItem('pinia_alarm', JSON.stringify({
+          alarms: importData.alarms,
+          isAlarmRinging: false,
+          ringingAlarm: null,
+          lastTriggeredTime: ''
+        }))
       }
 
       importMessage.value = '数据导入成功！页面将刷新'

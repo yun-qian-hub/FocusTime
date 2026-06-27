@@ -5,9 +5,9 @@ import { getScheduleCourses, saveScheduleCourses, getScheduleSettings, saveSched
 import { scheduleColors, scheduleBorderColors } from '@/utils/colors'
 
 export const useScheduleStore = defineStore('schedule', () => {
-  const courses = ref<ScheduleCourse[]>(getScheduleCourses())
-  const settings = ref<ScheduleSettings>(getScheduleSettings())
-  const overrides = ref<ScheduleOverride[]>(getScheduleOverrides())
+  const courses = ref<ScheduleCourse[]>([])
+  const settings = ref<ScheduleSettings>({})
+  const overrides = ref<ScheduleOverride[]>([])
   const currentWeekOffset = ref(0)
 
   const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -235,4 +235,4 @@ export const useScheduleStore = defineStore('schedule', () => {
     getDateForWeek,
     calculateWeekType
   }
-})
+}, { persist: true })

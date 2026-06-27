@@ -4,7 +4,7 @@ import type { Todo, TodoSubtask } from '@/types'
 import { getTodos, saveTodos } from '@/utils/storage'
 
 export const useTodoStore = defineStore('todo', () => {
-  const todos = ref<Todo[]>(getTodos())
+  const todos = ref<Todo[]>([])
   
   const filteredTodos = ref<'all' | 'today' | 'completed' | 'pending'>('all')
   const searchQuery = ref('')
@@ -190,4 +190,4 @@ export const useTodoStore = defineStore('todo', () => {
     removeSubtask,
     updateSubtask
   }
-})
+}, { persist: true })

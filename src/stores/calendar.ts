@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { CalendarEvent, ImportantEvent } from '@/types'
+import type { CalendarEvent } from '@/types'
 import { getEvents, saveEvents } from '@/utils/storage'
 import { useImportantStore } from './important'
 
 export const useCalendarStore = defineStore('calendar', () => {
-  const events = ref<CalendarEvent[]>(getEvents())
+  const events = ref<CalendarEvent[]>([])
   const currentDate = ref(new Date())
   const selectedDate = ref(new Date())
   const showCompleted = ref(true)
@@ -52,7 +52,7 @@ export const useCalendarStore = defineStore('calendar', () => {
       days.push({ date: i, month: currentMonth.value, year: currentYear.value, isCurrentMonth: true, isToday: isToday(currentYear.value, currentMonth.value, i), events: getFilteredEvents(getEventsForDate(new Date(currentYear.value, currentMonth.value, i))) })
     }
     
-    const remainingDays = 42 - days.length
+    const remainingDays = 35 - days.length
     for (let i = 1; i <= remainingDays; i++) {
       const month = currentMonth.value + 1
       const year = month > 11 ? currentYear.value + 1 : currentYear.value
@@ -84,7 +84,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     return year + '-' + (month < 10 ? '0' + month : month) + '-' + (day < 10 ? '0' + day : day)
   }
   
-  function getEventsForDate(date: Date): (CalendarEvent | Omit<CalendarEvent, 'startTime' | 'endTime' | 'repeat' | 'endDate'> & { isImportant: true })[] {
+  function getEventsForDate(date: Date): (CalendarEvent | { id: number; title: string; description?: string; priority?: string; isImportant: true; createdAt: string; type?: string; color: string; completed?: boolean })[] {
     const dateStr = formatDate(date)
     const calendarEvents = events.value.filter(e => {
       const eventDate = e.startTime.split('T')[0]
@@ -102,7 +102,8 @@ export const useCalendarStore = defineStore('calendar', () => {
         isImportant: true as const,
         createdAt: e.createdAt,
         type: e.type,
-        color: e.color
+        color: e.color,
+        completed: e.completed
       }))
     
     return [...calendarEvents, ...importantEvents]
@@ -156,4 +157,4 @@ export const useCalendarStore = defineStore('calendar', () => {
   }
   
   return { events, currentDate, selectedDate, showCompleted, currentMonth, currentYear, calendarDays, selectedDateEvents, selectedDateFilteredEvents, addEvent, updateEvent, deleteEvent, toggleEventCompleted, setCurrentDate, setSelectedDate, nextMonth, prevMonth, goToToday }
-})
+}, { persist: { paths: ['events', 'showCompleted'] } })

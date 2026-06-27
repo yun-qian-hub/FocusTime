@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, X, Trash2, Calendar, Award, Target, Clock, Star, Circle, AlertCircle, ListTodo } from 'lucide-vue-next'
+import { Plus, X, Trash2, Calendar, Award, Target, Clock, Star, Circle, AlertCircle, ListTodo, CheckCircle2 } from 'lucide-vue-next'
 import { useImportantStore } from '@/stores/important'
 import { useTodoStore } from '@/stores/todo'
 import type { ImportantEvent } from '@/types'
@@ -66,16 +66,28 @@ const typeOptions = [
   { value: 'other', label: '其他', icon: Circle, color: importantEventTypeColors.other }
 ]
 
+const priorityColors = {
+  high: 'bg-red-500',
+  medium: 'bg-amber-500',
+  low: 'bg-emerald-500'
+}
+
 const priorityLabels = {
   high: '高',
   medium: '中',
   low: '低'
 }
 
-const priorityColors = {
-  high: 'bg-red-500',
-  medium: 'bg-amber-500',
-  low: 'bg-emerald-500'
+const priorityBgColors = {
+  high: 'bg-red-50',
+  medium: 'bg-amber-50',
+  low: 'bg-emerald-50'
+}
+
+const priorityTextColors = {
+  high: 'text-red-600',
+  medium: 'text-amber-600',
+  low: 'text-emerald-600'
 }
 
 function getTypeInfo(type: ImportantEvent['type']) {
@@ -267,6 +279,23 @@ function closeModal() {
     saveNewEventDraft()
   }
 }
+
+const eventsByDate = computed(() => {
+  const grouped: Record<string, typeof filteredEvents.value> = {}
+  filteredEvents.value.forEach(event => {
+    if (!grouped[event.date]) {
+      grouped[event.date] = []
+    }
+    grouped[event.date].push(event)
+  })
+  const sortedDates = Object.keys(grouped).sort()
+  return sortedDates.map(date => ({
+    date,
+    events: grouped[date],
+    isToday: isToday(date),
+    isOverdue: isOverdue(date)
+  }))
+})
 </script>
 
 <template>
@@ -402,90 +431,146 @@ function closeModal() {
         </button>
       </div>
       
-      <div v-else class="overflow-y-auto space-y-3" style="max-height: calc(100vh - 380px);">
-        <div
-            v-for="event in filteredEvents"
-            :key="event.id"
-            class="p-4 rounded-xl border transition-all cursor-pointer group"
-            :class="[
-              isOverdue(event.date) ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-gray-200 hover:border-primary/30',
-              isToday(event.date) ? 'ring-2 ring-primary/50' : '',
-              selectedIds.has(event.id) ? 'bg-primary/10 border-primary/40' : ''
-            ]"
-            :style="{ borderLeftColor: event.color || '#f3e8ff', borderLeftWidth: '4px' }"
-            @click="openAddModal(event)"
-          >
-          <div class="flex items-start gap-4">
-            <input
-              type="checkbox"
-              :checked="selectedIds.has(event.id)"
-              @click.stop="toggleSelect(event.id)"
-              class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-2 flex-shrink-0"
-            />
+      <div v-else class="flex-1 overflow-y-auto" style="max-height: calc(100vh - 380px);">
+        <div class="relative pl-8">
+          <div class="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+          
+          <div v-for="group in eventsByDate" :key="group.date" class="relative mb-8 last:mb-0">
             <div 
-              class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-              :style="{ backgroundColor: getTypeInfo(event.type).color + '15' }"
+              class="absolute -left-[22px] w-4 h-4 rounded-full border-2 flex items-center justify-center"
+              :class="[
+                group.isToday ? 'border-primary bg-white' : 'border-gray-300 bg-white',
+                group.isOverdue ? 'border-gray-400 bg-gray-100' : ''
+              ]"
             >
-              <component 
-                :is="getTypeInfo(event.type).icon" 
-                :size="24" 
-                :style="{ color: getTypeInfo(event.type).color }"
-              />
+              <div 
+                v-if="group.isToday" 
+                class="w-2 h-2 rounded-full bg-primary"
+              ></div>
             </div>
             
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <Star :size="20" class="text-amber-500 fill-amber-500 flex-shrink-0" />
-                <h3 class="font-bold text-gray-800 text-lg">{{ event.title }}</h3>
+            <div class="mb-3">
+              <div class="flex items-center gap-3">
+                <h3 
+                  class="text-lg font-bold"
+                  :class="[
+                    group.isToday ? 'text-primary' : group.isOverdue ? 'text-gray-400' : 'text-gray-700'
+                  ]"
+                >
+                  {{ formatDate(group.date) }}
+                </h3>
                 <span 
-                  class="w-2 h-2 rounded-full"
-                  :class="priorityColors[event.priority]"
-                />
-              </div>
-              <p v-if="event.description" class="text-gray-500 mt-1 text-sm">{{ event.description }}</p>
-              
-              <div class="flex items-center gap-4 mt-2">
-                <span class="flex items-center gap-1 text-sm" :style="{ color: getTypeInfo(event.type).color }">
-                  <component :is="getTypeInfo(event.type).icon" :size="14" />
-                  {{ getTypeInfo(event.type).label }}
+                  v-if="group.isToday" 
+                  class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                >
+                  今天
                 </span>
-                <span class="flex items-center gap-1 text-sm text-gray-500">
-                  <Calendar :size="14" />
-                  <span :class="[isToday(event.date) ? 'text-primary font-bold' : isOverdue(event.date) ? 'text-gray-400 line-through' : '']">
-                    {{ formatDate(event.date) }}
-                  </span>
-                </span>
-                <span v-if="!isOverdue(event.date) && !isToday(event.date)" class="text-sm" :class="[getDaysUntil(event.date) <= 3 ? 'text-red-500 font-bold' : 'text-gray-400']">
-                  {{ getDaysUntil(event.date) }}天后
-                </span>
-                <span v-if="isOverdue(event.date)" class="text-sm text-gray-400">
+                <span 
+                  v-else-if="group.isOverdue" 
+                  class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs"
+                >
                   已过期
                 </span>
+                <span 
+                  v-else 
+                  class="text-sm text-gray-400"
+                >
+                  {{ getDaysUntil(group.date) }}天后
+                </span>
               </div>
             </div>
             
-            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                @click.stop="importToTodo(event)"
-                class="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center"
-                title="导入待办"
+            <div class="space-y-3">
+              <div
+                v-for="event in group.events"
+                :key="event.id"
+                class="p-4 rounded-xl border transition-all cursor-pointer group"
+                :class="[
+                  event.completed ? 'bg-emerald-50/50 border-emerald-200' : 'bg-white border-gray-200 hover:border-primary/30',
+                  selectedIds.has(event.id) ? 'ring-2 ring-primary/30' : ''
+                ]"
+                :style="{ borderLeftColor: event.completed ? '#10b981' : (event.color || '#f3e8ff'), borderLeftWidth: '4px' }"
+                @click="openAddModal(event)"
               >
-                <ListTodo :size="16" class="text-amber-600" />
-              </button>
-              <button
-                @click.stop="openAddModal(event)"
-                class="w-8 h-8 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center"
-              >
-                <svg :width="16" :height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button
-                @click.stop="deleteEvent(event.id)"
-                class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center"
-              >
-                <Trash2 :size="16" class="text-red-500" />
-              </button>
+                <div class="flex items-center gap-3">
+                  <div 
+                    class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    :style="{ backgroundColor: getTypeInfo(event.type).color + '15', opacity: event.completed ? 0.5 : 1 }"
+                  >
+                    <component 
+                      :is="getTypeInfo(event.type).icon" 
+                      :size="20" 
+                      :style="{ color: getTypeInfo(event.type).color, opacity: event.completed ? 0.5 : 1 }"
+                    />
+                  </div>
+                  
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-bold text-lg" :class="[event.completed ? 'text-gray-400 line-through' : 'text-gray-800']">{{ event.title }}</h3>
+                      <span 
+                        class="w-2 h-2 rounded-full flex-shrink-0"
+                        :class="priorityColors[event.priority]"
+                      />
+                    </div>
+                    <p v-if="event.description" class="text-gray-500 mt-0.5 text-sm" :class="[event.completed ? 'line-through opacity-50' : '']">{{ event.description }}</p>
+                    
+                    <div class="flex items-center gap-3 mt-2">
+                      <span class="flex items-center gap-1 text-xs text-gray-500">
+                        <Calendar :size="12" />
+                        {{ formatDate(event.date) }}
+                      </span>
+                      <span 
+                        class="px-2 py-0.5 rounded-full text-xs font-medium"
+                        :class="[event.completed ? 'bg-emerald-100 text-emerald-600' : priorityBgColors[event.priority] + ' ' + priorityTextColors[event.priority]]"
+                      >
+                        {{ event.completed ? '已完成' : priorityLabels[event.priority] }}
+                      </span>
+                      <span v-if="!event.completed && !group.isOverdue && !group.isToday" class="text-xs" :class="[getDaysUntil(event.date) <= 3 ? 'text-red-500 font-bold' : 'text-gray-400']">
+                        {{ getDaysUntil(event.date) }}天后
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      :checked="selectedIds.has(event.id)"
+                      @click.stop="toggleSelect(event.id)"
+                      class="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                    <button
+                      @click.stop="store.toggleComplete(event.id)"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all opacity-0 group-hover:opacity-100"
+                      :class="[event.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200']"
+                      :title="event.completed ? '标记为未完成' : '标记为已完成'"
+                    >
+                      <CheckCircle2 :size="16" v-if="event.completed" />
+                      <Circle :size="16" v-else />
+                    </button>
+                    <button
+                      @click.stop="importToTodo(event)"
+                      class="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="导入待办"
+                    >
+                      <ListTodo :size="14" class="text-amber-600" />
+                    </button>
+                    <button
+                      @click.stop="openAddModal(event)"
+                      class="w-7 h-7 rounded-lg bg-white/50 hover:bg-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg :width="14" :height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      @click.stop="deleteEvent(event.id)"
+                      class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 :size="14" class="text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

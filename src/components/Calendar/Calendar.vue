@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup lang="ts">
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { ChevronLeft, ChevronRight, Plus, X, Clock, Calendar as CalendarIcon, CalendarDays, Repeat, Briefcase, BookOpen, Home, FolderKanban, Users, ListTodo, Palette, Star, Check, Eye, EyeOff } from 'lucide-vue-next'
 import { useCalendarStore } from '@/stores/calendar'

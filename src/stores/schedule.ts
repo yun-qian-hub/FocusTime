@@ -6,7 +6,13 @@ import { scheduleColors, scheduleBorderColors } from '@/utils/colors'
 
 export const useScheduleStore = defineStore('schedule', () => {
   const courses = ref<ScheduleCourse[]>([])
-  const settings = ref<ScheduleSettings>({})
+  const settings = ref<ScheduleSettings>({
+    startDate: new Date().toISOString().split('T')[0],
+    baseWeekNumber: 1,
+    baseWeekType: 'odd',
+    startTime: '08:00',
+    endTime: '22:00'
+  })
   const overrides = ref<ScheduleOverride[]>([])
   const currentWeekOffset = ref(0)
 
@@ -35,12 +41,17 @@ export const useScheduleStore = defineStore('schedule', () => {
   }
 
   function calculateWeekType(date: Date): 'odd' | 'even' {
-    const currentWeekNum = getWeekNumber(date, new Date(settings.value.startDate))
-    const diff = currentWeekNum - settings.value.baseWeekNumber
-    if (diff % 2 === 0) {
-      return settings.value.baseWeekType
-    } else {
-      return settings.value.baseWeekType === 'odd' ? 'even' : 'odd'
+    if (!settings.value.startDate) return 'odd'
+    try {
+      const currentWeekNum = getWeekNumber(date, new Date(settings.value.startDate))
+      const diff = currentWeekNum - settings.value.baseWeekNumber
+      if (diff % 2 === 0) {
+        return settings.value.baseWeekType
+      } else {
+        return settings.value.baseWeekType === 'odd' ? 'even' : 'odd'
+      }
+    } catch {
+      return 'odd'
     }
   }
 
@@ -52,11 +63,16 @@ export const useScheduleStore = defineStore('schedule', () => {
   })
 
   const currentWeekNumber = computed(() => {
-    const start = new Date(settings.value.startDate)
-    const now = new Date()
-    const adjustedNow = new Date(now)
-    adjustedNow.setDate(adjustedNow.getDate() + currentWeekOffset.value * 7)
-    return getWeekNumber(adjustedNow, start)
+    if (!settings.value.startDate) return 1
+    try {
+      const start = new Date(settings.value.startDate)
+      const now = new Date()
+      const adjustedNow = new Date(now)
+      adjustedNow.setDate(adjustedNow.getDate() + currentWeekOffset.value * 7)
+      return getWeekNumber(adjustedNow, start)
+    } catch {
+      return 1
+    }
   })
 
   const visibleCourses = computed(() => {

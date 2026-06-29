@@ -49,6 +49,9 @@ coverage/
 *.tgz
 *.tar.gz
 
+# Backup folder
+backup/
+
 # Backup files
 *.json
 !package.json

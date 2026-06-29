@@ -8,8 +8,7 @@ const OLD_KEY_MAPPING: Record<string, string> = {
   alarm: 'task_manager_alarms',
   important: 'task_manager_important_events',
   plan: 'task_manager_plan_items',
-  schedule: 'task_manager_schedule_courses',
-  pomodoro: 'task_manager_pomodoro_settings'
+  schedule: 'task_manager_schedule_courses'
 }
 
 function serialize(value: any): string {

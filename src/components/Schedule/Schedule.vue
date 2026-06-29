@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Plus, ChevronLeft, ChevronRight, BookOpen, Clock, MapPin, User, Edit2, Trash2, X, RotateCcw, Settings, ZoomOut, AlertCircle, Undo2, FileText } from 'lucide-vue-next'
+import { Plus, ChevronLeft, ChevronRight, BookOpen, Clock, MapPin, User, Edit2, Trash2, X, XCircle, RotateCcw, Settings, ZoomOut, AlertCircle, Undo2, FileText } from 'lucide-vue-next'
 import { useScheduleStore } from '@/stores/schedule'
 import type { ScheduleCourse } from '@/types'
 import { scheduleColors } from '@/utils/colors'

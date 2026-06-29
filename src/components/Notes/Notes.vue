@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Plus, X, Tag, Trash2, AlertTriangle, Lock, Unlock, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { Plus, X, Tag, Trash2, AlertTriangle, Lock, Unlock, Maximize2, Minimize2, Search } from 'lucide-vue-next'
 import { useNotesStore, NOTE_COLORS } from '@/stores/notes'
 import { useSecureNotesStore } from '@/stores/secureNotes'
 
@@ -32,8 +32,18 @@ const unlockPassword = ref('')
 
 const activeTab = ref<'normal' | 'secure'>('normal')
 const isNoteMaximized = ref(false)
+const searchQuery = ref('')
 
 const commonlyUsedTags = ['工作', '生活', '学习', '想法', '待办']
+
+const filteredNotes = computed(() => {
+  if (!searchQuery.value.trim()) return store.sortedNotes
+  const q = searchQuery.value.trim().toLowerCase()
+  return store.sortedNotes.filter(note =>
+    note.content.toLowerCase().includes(q) ||
+    note.tags.some(tag => tag.toLowerCase().includes(q))
+  )
+})
 
 const secureEditingContent = computed({
   get: () => secureStore.unlockedContent,
@@ -210,6 +220,15 @@ function getPreview(content: string): string {
     <div v-if="activeTab === 'normal'" class="glass-card p-6 flex-1 flex gap-6 overflow-hidden relative">
       <div class="w-80 flex flex-col gap-4 overflow-hidden">
         <div class="flex items-center gap-2">
+          <div class="relative flex-1">
+            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="input-field w-full pl-9"
+              placeholder="搜索笔记内容或标签..."
+            />
+          </div>
           <input
             v-model="newNoteContent"
             @keyup.enter="createNote"
@@ -228,7 +247,7 @@ function getPreview(content: string): string {
         
         <div class="flex-1 overflow-y-auto space-y-3 scrollbar-hide">
           <div
-            v-for="note in store.sortedNotes"
+            v-for="note in filteredNotes"
             :key="note.id"
             @click="store.selectNote(note.id)"
             class="p-4 rounded-xl cursor-pointer transition-all border"

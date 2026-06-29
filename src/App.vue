@@ -9,7 +9,6 @@ import Important from '@/components/Important/Important.vue'
 import Plan from '@/components/Plan/Plan.vue'
 import Schedule from '@/components/Schedule/Schedule.vue'
 import DataManager from '@/components/DataManager/DataManager.vue'
-import Pomodoro from '@/components/Pomodoro/Pomodoro.vue'
 import type { TabType } from '@/types'
 
 const activeTab = ref<TabType>('calendar')
@@ -22,7 +21,6 @@ const components = {
   important: Important,
   plan: Plan,
   schedule: Schedule,
-  pomodoro: Pomodoro,
   datamanager: DataManager
 }
 
